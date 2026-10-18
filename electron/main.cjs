@@ -1,22 +1,44 @@
-const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const readline = require('readline');
 
+// Mencegah aplikasi dibuka dobel (Single Instance Lock)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.quit();
+    process.exit(0);
+}
+
 let mainWindow;
 let mediaProcess;
-const cmdFilePath = path.join(__dirname, '.media-cmd');
+let tray = null;
+
+// File perintah ditaruh di folder temp agar aman ditulis di mode produksi
+const cmdFilePath = path.join(app.getPath('temp'), 'ryflow-media.cmd');
+
+function getScriptPath() {
+    if (app.isPackaged) {
+        return path.join(__dirname, 'media-bridge.ps1').replace('app.asar', 'app.asar.unpacked');
+    }
+    return path.join(__dirname, 'media-bridge.ps1');
+}
 
 function startMediaBridge() {
-    const scriptPath = path.join(__dirname, 'media-bridge.ps1');
+    const scriptPath = getScriptPath();
+
+    if (fs.existsSync(cmdFilePath)) {
+        try { fs.unlinkSync(cmdFilePath); } catch { }
+    }
 
     mediaProcess = spawn('powershell.exe', [
         '-NoProfile',
         '-NonInteractive',
         '-Sta',
         '-ExecutionPolicy', 'Bypass',
-        '-File', scriptPath
+        '-File', scriptPath,
+        '-cmdFilePath', cmdFilePath
     ]);
 
     const rl = readline.createInterface({ input: mediaProcess.stdout });
@@ -71,7 +93,53 @@ function createWindow() {
     mainWindow.setAlwaysOnTop(true, 'screen-saver');
     mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
-    mainWindow.loadURL('http://localhost:5173');
+    // Jika mode dev: buka localhost. Jika mode produksi/standalone: baca file dist/index.html lokal
+    if (!app.isPackaged) {
+        mainWindow.loadURL('http://localhost:5173');
+    } else {
+        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    }
+}
+
+function createTray() {
+    const iconPath = path.join(__dirname, 'tray.png');
+    tray = new Tray(iconPath);
+    tray.setToolTip('Ryflow Dynamic Island');
+
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Ryflow — Aktif', enabled: false },
+        { type: 'separator' },
+        {
+            label: 'Tampilkan / Fokus',
+            click: () => {
+                if (mainWindow) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+            }
+        },
+        {
+            label: 'Muat Ulang (Reload)',
+            click: () => {
+                if (mainWindow) mainWindow.reload();
+            }
+        },
+        { type: 'separator' },
+        {
+            label: 'Keluar dari Ryflow',
+            click: () => {
+                app.quit();
+            }
+        }
+    ]);
+
+    tray.setContextMenu(contextMenu);
+    tray.on('click', () => {
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
 }
 
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
@@ -81,7 +149,6 @@ ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
     }
 });
 
-// Mengirim perintah kontrol tombol ke media-bridge
 ipcMain.on('media-control', (_event, action) => {
     try {
         fs.writeFileSync(cmdFilePath, String(action), 'utf8');
@@ -90,9 +157,26 @@ ipcMain.on('media-control', (_event, action) => {
     }
 });
 
+app.on('second-instance', () => {
+    if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+    }
+});
+
 app.whenReady().then(() => {
     createWindow();
+    createTray();
     startMediaBridge();
+
+    // Otomatis daftar ke Windows Startup saat laptop menyala (hanya aktif jika sudah di-build jadi aplikasi)
+    if (app.isPackaged) {
+        app.setLoginItemSettings({
+            openAtLogin: true,
+            path: process.execPath,
+        });
+    }
 });
 
 app.on('will-quit', () => {

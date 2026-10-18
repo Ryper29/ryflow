@@ -1,3 +1,7 @@
+param(
+    [string]$cmdFilePath = ""
+)
+
 $ErrorActionPreference = "SilentlyContinue"
 $OutputEncoding = [System.Text.Encoding]::UTF8
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
@@ -28,7 +32,7 @@ function Await($WinRtTask, $ResultType) {
 
 $manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) $tManager
 
-$cmdFile = Join-Path $PSScriptRoot ".media-cmd"
+$cmdFile = if ($cmdFilePath) { $cmdFilePath } else { Join-Path ([System.IO.Path]::GetTempPath()) "ryflow-media.cmd" }
 $lastTrackKey = ""
 $cachedThumbnail = $null
 $tick = 0

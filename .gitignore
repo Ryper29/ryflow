@@ -1,5 +1,6 @@
-# Personal docs (private notes, changelogs, prompts)
-docs/
+# Personal notes & prompts
+docs/*
+!docs/CHANGES.md
 
 # Logs
 logs
@@ -13,6 +14,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+release
 *.local
 
 # Editor directories and files
