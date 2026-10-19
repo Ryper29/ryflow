@@ -300,4 +300,30 @@ Pembaruan besar pada interaksi kursor (hover) dan geometri notch agar selaras de
 
 ---
 
+### [v0.3.2] — 2026-10-20
+
+#### 🎵 YouTube Lyrics & Metadata Support + Fallback 3 Tingkat
+
+Pembaruan pada sistem deteksi dan parsing metadata lagu untuk mendukung pemutaran dari YouTube di browser (Chrome/Edge) agar lirik dan cover art tetap dapat ditemukan dan ditampilkan.
+
+**Fitur & Peningkatan Utama:**
+1. **YouTube Video Title Parser (`parseYouTubeTitle`):**
+   - Mendeteksi format `Artis - Judul` khas video YouTube.
+   - Membersihkan suffix video YouTube: `(Official Video)`, `(Lyrics)`, `[MV]`, `(Visualizer)`, `(Audio)`, dsb.
+   - Membersihkan nama channel VEVO/Topic/Official (mis. `ColdplayVEVO` → `Coldplay`).
+2. **Sistem Fallback Lirik 3 Tingkat (`fetchTrackExtras`):**
+   - **Tingkat 1:** Query lrclib menggunakan metadata hasil parsing YouTube.
+   - **Tingkat 2:** Fallback ke metadata original jika belum ditemukan.
+   - **Tingkat 3:** Fallback pencarian hanya dari judul lagu tanpa nama artis.
+3. **Optimasi Cover & Anti-Flicker:**
+   - Mempertahankan thumbnail sebelumnya saat transisi lagu agar piringan tidak berkedip hijau.
+   - Memperbaiki query pencarian artwork iTunes.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+
+---
+
 *Tambahkan entri baru di atas bagian ini saat ada perubahan berikutnya.*
+

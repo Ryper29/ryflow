@@ -26,10 +26,156 @@ function parseLrc(lrcText) {
 }
 
 function cleanTrackTitle(title) {
+  if (!title) return '';
   return title
-    .replace(/\s*\(.*?(remaster\vert{}version\vert{}edit\vert{}live\vert{}feat\vert{}ft\.).*?\)/gi, '')
+    .replace(/\s*\(.*?(remaster|version|edit|live|feat|ft\.).*?\)/gi, '')
     .replace(/\s*-\s*.*?(remaster|version|edit|live|acoustic).*$/gi, '')
+    .replace(/\s+(?:feat\.?|ft\.?)\s+.*$/gi, '')
     .trim();
+}
+
+function stripVideoSuffixes(str) {
+  if (!str) return '';
+  let s = str;
+
+  // 1. Tag kurung video / audio / lyrics / visualizer / mv / live / remaster (termasuk bracket Asia)
+  s = s.replace(/\s*[([{\u3010\u300C\u300E]\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|hd|4k|m\/?v|performance|live|clip|remaster(?:ed)?|version).*?[)\]}\u3011\u300D\u300F]/gi, '');
+
+  // 2. Kurung sederhana: (Official), [Official], (Lyrics), (Audio), (Visualizer), dll.
+  s = s.replace(/\s*[([{\u3010\u300C\u300E]\s*(?:official|lyrics?|audio|visualizer|hd|4k|mv|m\/v|clip|live)\s*[)\]}\u3011\u300D\u300F]/gi, '');
+
+  // 3. M/V atau MV di akhir kata
+  s = s.replace(/\s+(?:m\/?v|mv)\s*$/gi, '');
+
+  // 4. Suffix setelah delimiter pipe atau slash: | Official Video, // Official Audio, dll.
+  s = s.replace(/\s*[|/]{1,2}\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|hd|4k|m\/?v|clip).*$/gi, '');
+
+  // 5. Pipe umum di akhir
+  s = s.replace(/\s*\|\s*.*$/gi, '');
+
+  // 6. Suffix dash di akhir: - Official Video, - Audio, dll.
+  s = s.replace(/\s*-\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|mv|m\/?v|clip).*$/gi, '');
+
+  // 7. Hapus tanda petik pembungkus judul: 'Song Title' -> Song Title
+  s = s.trim().replace(/^['"“‘](.*)['"”’]$/, '$1').trim();
+
+  return s;
+}
+
+function cleanChannelArtist(artist) {
+  if (!artist) return '';
+  let cleaned = artist.trim();
+  // Strip " - Topic" (YouTube auto-generated music channels)
+  cleaned = cleaned.replace(/\s*-\s*Topic$/i, '');
+  // Strip "VEVO" di akhir (mis. ColdplayVEVO -> Coldplay)
+  cleaned = cleaned.replace(/VEVO$/i, '');
+  // Strip "Official Channel", "Official Music", "Official", "Channel"
+  cleaned = cleaned.replace(/\s*(?:Official\s*Channel|Official\s*Music|Official|Channel)$/i, '');
+  cleaned = cleaned.replace(/Official$/i, '');
+  // Strip "Music" di akhir jika diawali spasi
+  cleaned = cleaned.replace(/\s+Music$/i, '');
+  return cleaned.trim();
+}
+
+function isLikelyChannelName(artist) {
+  if (!artist) return false;
+  const a = artist.trim();
+  if (/VEVO$/i.test(a)) return true;
+  if (/-\s*Topic$/i.test(a)) return true;
+  if (/(?:Official|Channel)$/i.test(a)) return true;
+  if (/^(?:YouTube|YouTubeMusic|Chrome|Edge)$/i.test(a)) return true;
+  return false;
+}
+
+function parseYouTubeTitle(title, artist) {
+  if (!title) return { title: '', artist: artist || '', isYouTubeLike: false };
+
+  const rawTitle = title.trim();
+  const rawArtist = (artist || '').trim();
+  const cleanedChannel = cleanChannelArtist(rawArtist);
+
+  // Cek apakah ada pemisah seperti " - ", " – ", " — "
+  const separatorMatch = rawTitle.match(/\s+[-–—]\s+/);
+
+  if (separatorMatch) {
+    const parts = rawTitle.split(/\s+[-–—]\s+/);
+    if (parts.length >= 2) {
+      const leftPart = parts[0].trim();
+      const rightPart = parts.slice(1).join(' - ').trim();
+
+      const hasVideoSuffix = /official|video|audio|lyrics?|visualizer|m\/?v|clip/i.test(rawTitle);
+      const isChannelLike = isLikelyChannelName(rawArtist);
+      const artistMatchesLeft = Boolean(cleanedChannel && leftPart.toLowerCase().includes(cleanedChannel.toLowerCase()));
+      const leftMatchesArtist = Boolean(cleanedChannel && cleanedChannel.toLowerCase().includes(leftPart.toLowerCase()));
+
+      if (hasVideoSuffix || isChannelLike || artistMatchesLeft || leftMatchesArtist) {
+        const cleanedTitle = cleanTrackTitle(stripVideoSuffixes(rightPart));
+        const extractedArtist = leftPart;
+        return {
+          title: cleanedTitle || stripVideoSuffixes(rightPart),
+          artist: extractedArtist || cleanedChannel || rawArtist,
+          isYouTubeLike: true,
+        };
+      }
+    }
+  }
+
+  // Jika tidak berformat "Artis - Judul", bersihkan video suffixes dari judul
+  const cleanedTitle = cleanTrackTitle(stripVideoSuffixes(rawTitle));
+  const finalArtist = cleanedChannel || rawArtist;
+  const isYouTubeLike = /official|video|audio|lyrics?|visualizer|m\/?v|clip/i.test(rawTitle) || isLikelyChannelName(rawArtist);
+
+  return {
+    title: cleanedTitle || rawTitle,
+    artist: finalArtist,
+    isYouTubeLike,
+  };
+}
+
+async function queryLrcLib(trackName, artistName, signal) {
+  let lrcData = null;
+  const cleanTrack = (trackName || '').trim();
+  const cleanArt = (artistName || '').trim();
+
+  // 1. Coba endpoint /api/get jika artistName dan trackName ada
+  if (cleanTrack && cleanArt) {
+    try {
+      const primary = cleanArt.split(',')[0].split('&')[0].split(/\s+x\s+/i)[0].trim();
+      const getUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(primary)}&track_name=${encodeURIComponent(cleanTrack)}`;
+      const getRes = await fetch(getUrl, { signal });
+      if (getRes.ok) {
+        lrcData = await getRes.json();
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+    }
+  }
+
+  // 2. Coba endpoint /api/search jika belum dapat synced lyrics
+  if (!lrcData || !lrcData.syncedLyrics) {
+    try {
+      const queryStr = [cleanTrack, cleanArt].filter(Boolean).join(' ').trim();
+      if (queryStr) {
+        const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(queryStr)}`;
+        const searchRes = await fetch(searchUrl, { signal });
+        if (searchRes.ok) {
+          const results = await searchRes.json();
+          if (Array.isArray(results) && results.length > 0) {
+            const bestMatch = results.find((item) => item.syncedLyrics) ||
+                              results.find((item) => item.plainLyrics) ||
+                              results[0];
+            if (bestMatch && (bestMatch.syncedLyrics || bestMatch.plainLyrics)) {
+              lrcData = bestMatch;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+    }
+  }
+
+  return lrcData;
 }
 
 export default function App() {
@@ -70,7 +216,11 @@ export default function App() {
         setMedia((prev) => {
           const diff = Math.abs(prev.position - data.position);
           const smoothPos = (prev.title === data.title && diff <= 1.5) ? prev.position : data.position;
-          return { ...data, position: smoothPos };
+          return {
+            ...data,
+            thumbnail: data.thumbnail ?? prev.thumbnail,
+            position: smoothPos,
+          };
         });
       }
     });
@@ -98,17 +248,25 @@ export default function App() {
     lastFetchedTrack.current = trackKey;
 
     const controller = new AbortController();
+    // Reset fallbackCover saat lagu berganti agar cover lama tidak nempel,
+    // tapi thumbnail dari PowerShell (jika ada) tetap tampil via media.thumbnail
+    setFallbackCover(null);
 
     async function fetchTrackExtras() {
       setLyricStatus('loading');
       setLyrics([]);
-      setFallbackCover(null);
+      // Jangan reset fallbackCover dulu — biarkan cover lama tampil
+      // sampai cover baru berhasil di-fetch (mencegah flicker ke ijo)
 
+      const parsedYT = parseYouTubeTitle(media.title, media.artist);
       const cleanTitle = cleanTrackTitle(media.title);
       const primaryArtist = media.artist.split(',')[0].split('&')[0].trim();
 
+      const searchTitle = parsedYT.title || cleanTitle;
+      const searchArtist = parsedYT.artist || primaryArtist;
+
       try {
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(`${cleanTitle}${primaryArtist}`)}&entity=song&limit=1`;
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(`${searchTitle} ${searchArtist}`.trim())}&entity=song&limit=1`;
         const resArt = await fetch(itunesUrl, { signal: controller.signal });
         const dataArt = await resArt.json();
         if (dataArt.results?.[0]?.artworkUrl100) {
@@ -119,21 +277,21 @@ export default function App() {
       try {
         let lrcData = null;
 
-        const getUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(primaryArtist)}&track_name=${encodeURIComponent(cleanTitle)}`;
-        const getRes = await fetch(getUrl, { signal: controller.signal });
+        // 1. Coba fetch lirik dengan judul/artis hasil parse YouTube terlebih dahulu
+        lrcData = await queryLrcLib(parsedYT.title, parsedYT.artist, controller.signal);
 
-        if (getRes.ok) {
-          lrcData = await getRes.json();
+        // 2. Jika tidak ketemu, fallback ke query original
+        if (!lrcData || (!lrcData.syncedLyrics && !lrcData.plainLyrics)) {
+          if (cleanTitle !== parsedYT.title || primaryArtist !== parsedYT.artist) {
+            lrcData = await queryLrcLib(cleanTitle, primaryArtist, controller.signal);
+          }
         }
 
-        if (!lrcData || !lrcData.syncedLyrics) {
-          const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(`${cleanTitle}${primaryArtist}`)}`;
-          const searchRes = await fetch(searchUrl, { signal: controller.signal });
-          if (searchRes.ok) {
-            const results = await searchRes.json();
-            if (Array.isArray(results) && results.length > 0) {
-              lrcData = results.find((item) => item.syncedLyrics) || results[0];
-            }
+        // 3. Fallback kedua: coba query hanya dari judul yang sudah dibersihkan tanpa artis
+        if (!lrcData || (!lrcData.syncedLyrics && !lrcData.plainLyrics)) {
+          const fallbackTitle = parsedYT.title || cleanTitle;
+          if (fallbackTitle) {
+            lrcData = await queryLrcLib(fallbackTitle, '', controller.signal);
           }
         }
 
