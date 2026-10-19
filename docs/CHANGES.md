@@ -264,4 +264,40 @@ Aplikasi kini dapat di-compile menjadi installer `.exe` mandiri yang berjalan ot
 
 ---
 
+### [v0.3.1] — 2026-10-19
+
+#### 🎯 UX & Layout Upgrade: MacBook Notch + Top-Bezel Trigger (Tanpa Delay)
+
+Pembaruan besar pada interaksi kursor (hover) dan geometri notch agar selaras dengan estetika perangkat keras laptop dan fungsionalitas browser Windows.
+
+---
+
+#### 1. Geometri Notch: Gaya MacBook (*MacBook Notch Style*)
+
+- **Rata di Atas (`border-top-radius: 0`):** Sisi paling atas notch dibuat rata dan menempel rapat di bibir atas layar ($Y = 0$), menciptakan ilusi visual seolah-olah notch tumbuh langsung dari bingkai (bezel) fisik monitor.
+- **Lekukan Bahu Kiri & Kanan (Top Ears):** Ditambahkan elemen lengkung SVG transparan di kedua sudut atas (12×12px) untuk membentuk siluet cekung halus khas layar MacBook.
+- **Sudut Bawah Melengkung:** Sudut bawah notch tetap mempertahankan radius lengkung yang elegan saat tertutup (14px) maupun terbuka (22px).
+
+---
+
+#### 2. Mekanisme Interaksi: Top-Bezel Trigger
+
+**Masalah sebelumnya:** Idle notch beririsan langsung dengan posisi tab Chrome di Windows (Y = 0 hingga 34px), sehingga kursor yang ingin mengklik tab Chrome sering tak sengaja memicu notch terbuka.
+
+**Solusi (Top-Bezel Trigger):**
+
+| Kondisi | Perilaku |
+|---------|----------|
+| Notch tertutup (idle) | Seluruh area notch tembus klik penuh (`setIgnoreMouseEvents`) |
+| Kursor di `e.clientY <= 6` | Notch terbuka — zona trigger tepat di garis atas layar |
+| Kursor di bawah 6px | Area bebas — tab Chrome & tombol X tidak terganggu |
+| Respons | **Instan tanpa delay** — timer delay dihapus sepenuhnya |
+
+---
+
+**File yang diubah:**
+- `src/App.jsx` — logika `handleMouseMove`, struktur animasi Framer Motion, dan penambahan elemen SVG Top Ears
+
+---
+
 *Tambahkan entri baru di atas bagian ini saat ada perubahan berikutnya.*
