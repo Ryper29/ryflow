@@ -264,39 +264,32 @@ Aplikasi kini dapat di-compile menjadi installer `.exe` mandiri yang berjalan ot
 
 ---
 
-### [v0.3.1] — 2026-10-19
-
-#### 🎯 UX & Layout Upgrade: MacBook Notch + Top-Bezel Trigger (Tanpa Delay)
-
-Pembaruan besar pada interaksi kursor (hover) dan geometri notch agar selaras dengan estetika perangkat keras laptop dan fungsionalitas browser Windows.
-
 ---
 
-#### 1. Geometri Notch: Gaya MacBook (*MacBook Notch Style*)
+### [v0.3.1] — 2026-10-20
 
-- **Rata di Atas (`border-top-radius: 0`):** Sisi paling atas notch dibuat rata dan menempel rapat di bibir atas layar ($Y = 0$), menciptakan ilusi visual seolah-olah notch tumbuh langsung dari bingkai (bezel) fisik monitor.
-- **Lekukan Bahu Kiri & Kanan (Top Ears):** Ditambahkan elemen lengkung SVG transparan di kedua sudut atas (12×12px) untuk membentuk siluet cekung halus khas layar MacBook.
-- **Sudut Bawah Melengkung:** Sudut bawah notch tetap mempertahankan radius lengkung yang elegan saat tertutup (14px) maupun terbuka (22px).
+#### 💻 MacBook Notch Silhouette + Instant Top-Bezel Trigger & Monochrome Polish
 
----
+Transformasi bentuk visual Ryflow dari kapsul melayang (*Dynamic Island*) menjadi siluet *Notch* ala MacBook yang menyatu dengan bingkai atas layar, dilengkapi solusi anti-senggol saat mengklik tab browser di belakangnya.
 
-#### 2. Mekanisme Interaksi: Top-Bezel Trigger
+**Perubahan Bentuk & Visual (MacBook Notch & Clean Monochrome):**
 
-**Masalah sebelumnya:** Idle notch beririsan langsung dengan posisi tab Chrome di Windows (Y = 0 hingga 34px), sehingga kursor yang ingin mengklik tab Chrome sering tak sengaja memicu notch terbuka.
+| Area | Sebelum | Sesudah |
+|---|---|---|
+| Siluet Atas Notch | Melengkung di semua sudut (`borderRadius: 24`) seperti kapsul | Rata di bagian atas (`borderTopRadius: 0`, `border-t-0`), menyatu rapat dengan bezel layar |
+| Bahu Kiri & Kanan Atas | Sudut siku/melengkung ke dalam | Ditambah 2 elemen SVG *Liquid Top Ears* (`12x12px`) yang melengkung cekung keluar ala MacBook |
+| Dimensi Notch | Idle: `170x36px` / Expanded: `580x195px` | Idle: `172x34px` (radius bawah `14px`) / Expanded: `580x188px` (radius bawah `22px`) |
+| Latar & Elemen Dekoratif | Ada *ambient glow* merah (`bg-rose-600 blur-3xl`) & ikon `Flame` | Dihapus sepenuhnya; diganti estetika *clean monochrome* dengan dot indikator minimalis |
+| Tipografi Lirik | `font-lyric italic` (Fraunces) — terasa terlalu dekoratif dan sempit di ukuran kecil | `font-sans` (Plus Jakarta Sans) tegak — lebih tegas, bersih, dan mudah dibaca cepat |
 
-**Solusi (Top-Bezel Trigger):**
+**Mekanisme Interaksi Baru (Instant Top-Bezel Trigger):**
+- **Masalah sebelumnya:** Posisi *idle notch* di tengah atas layar sering beririsan dengan deretan tab browser (seperti Chrome), sehingga niat mengklik atau menutup (`X`) tab malah tidak sengaja membuka Ryflow.
+- **Solusi (`handleMouseMove` + `e.clientY <= 6`):**
+  - Event pembuka diubah dari `onMouseEnter` menjadi `onMouseMove` dengan pengecekan koordinat vertikal kursor.
+  - Saat kondisi *idle*, seluruh badan notch di area `Y > 6px` tetap berada dalam mode *click-through* (`setIgnoreMouseEvents(true, { forward: true })`), sehingga klik mouse langsung menembus ke tab Chrome di belakangnya.
+  - Ryflow baru akan membuka secara **instan (tanpa delay)** ketika kursor didorong mentok menyentuh bibir paling atas layar (`Y <= 6px`).
 
-| Kondisi | Perilaku |
-|---------|----------|
-| Notch tertutup (idle) | Seluruh area notch tembus klik penuh (`setIgnoreMouseEvents`) |
-| Kursor di `e.clientY <= 6` | Notch terbuka — zona trigger tepat di garis atas layar |
-| Kursor di bawah 6px | Area bebas — tab Chrome & tombol X tidak terganggu |
-| Respons | **Instan tanpa delay** — timer delay dihapus sepenuhnya |
-
----
-
-**File yang diubah:**
-- `src/App.jsx` — logika `handleMouseMove`, struktur animasi Framer Motion, dan penambahan elemen SVG Top Ears
+**File yang diubah:** `src/App.jsx`
 
 ---
 
@@ -322,6 +315,89 @@ Pembaruan pada sistem deteksi dan parsing metadata lagu untuk mendukung pemutara
 **File yang diubah:**
 - `src/App.jsx`
 - `package.json`
+
+---
+
+### [v0.3.3] — 2026-10-22
+
+#### 🎯 Validasi Ketat Pencarian Lirik (`pickBestMatch`) & Anti-Stuck Loading State
+
+Pembaruan penanganan pengambilan lirik pada API lrclib untuk meningkatkan akurasi hasil pencarian dan mencegah tampilan macet (*stuck*) saat pergantian lagu.
+
+**Fitur & Peningkatan Utama:**
+1. **Validasi Kecocokan Lirik (`pickBestMatch`, `normKey`, `titleKey`):**
+   - **Masalah sebelumnya:** Pencarian fallback `/api/search` hanya mengambil entri pertama yang memiliki lirik tanpa memvalidasi artis, berisiko menampilkan lirik dari lagu artis lain yang kebetulan memiliki judul yang sama (*false positive*).
+   - **Solusi:** Menambahkan fungsi skoring `pickBestMatch` dengan normalisasi teks (menghapus aksen, simbol, kurung varian). Hasil search wajib cocok dengan judul lagu dan salah satu petunjuk artis (`hints`), memprioritaskan lirik tersinkronisasi (*syncedLyrics*).
+2. **Parameter Pencarian Terstruktur (`track_name` & `artist_name`):**
+   - Mengubah query pencarian lrclib dari pencarian umum `?q=judul+artis` menjadi parameter terstruktur `?track_name=...&artist_name=...` yang jauh lebih spesifik dan akurat di sisi server.
+3. **Pelepasan Kunci Abort / Anti-Stuck Loading:**
+   - **Masalah sebelumnya:** Jika proses fetch terpotong di tengah jalan (misal lagu di-skip cepat atau metadata sempat berkedip menjadi `"Tidak ada judul"`), ref `lastFetchedTrack` tetap menyimpan kunci lagu tersebut sehingga lagu tidak akan pernah di-fetch ulang, menyebabkan teks *"Memuat lirik..."* tersangkut selamanya.
+   - **Solusi:** Menambahkan flag pelacak `finished` pada cleanup `useEffect`. Jika request dibatalkan sebelum selesai (`controller.signal.aborted`), kunci `lastFetchedTrack.current` di-reset kembali ke string kosong agar lagu dapat di-fetch ulang secara bersih.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+
+---
+
+### [v0.4.0] — 2026-10-22
+
+#### 🎬 Restore Bounce Feel pada Animasi Notch
+
+Mengembalikan rasa "hidup" pada animasi buka/tutup notch yang sebelumnya hilang akibat refactor ke sistem `absolute` positioning.
+
+**Latar Belakang:**
+Versi sebelumnya menggunakan `flex justify-between` pada konten anak di dalam spring container. Akibatnya saat notch menutup, spring overshoot (pantul ke bawah) menyebabkan konten header terjepit dan kemudian "melompat" ke posisi idle — bug visual yang mengganggu. Fix-nya (ubah ke `absolute` + fixed dimension) berhasil menghilangkan bug squish, namun mengorbankan rasa bounce karena konten tidak lagi bergerak bersama spring container.
+
+**Perubahan:**
+
+| Komponen | Sebelum | Sesudah |
+|---|---|---|
+| Parent spring `stiffness` | `420` | `380` |
+| Parent spring `damping` | `32` | `24` (lebih bouncy) |
+| `idle-view` entry | `opacity` + `scale 0.95→1` linear | `opacity` + `y: -8→0` spring (`stiffness: 360, damping: 22`) |
+| `idle-view` exit | `opacity` + `scale 0.95` | `opacity` + `y: -4` |
+
+**Cara kerjanya:**
+- Container mengecil dengan pantul yang lebih terasa (`damping: 24`)
+- Idle pill muncul dengan gerak spring kecil dari atas (`y: -8 → 0`) yang sedikit overshoot, memberi ilusi pill "jatuh dan mengeset" ke posisinya bersama container — tanpa ada konten yang terjepit
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+
+---
+
+### [v0.4.0] — 2026-10-22
+
+#### 🗓️ Multi-Tab Hub Navigation, Pin Mode & Tab Today (Cuaca, Kalender, Agenda)
+
+Transformasi Ryflow dari sekadar pengontrol musik menjadi *smart productivity hub* di atas layar dengan sistem navigasi *micro-tabs*, fitur pengunci *notch* (*Pin Mode*), serta dasbor harian lengkap di tab `Today`.
+
+**1. Navigasi Micro-Tabs & Pin Mode di Header:**
+
+| Fitur | Detail Implementasi |
+|---|---|
+| **Micro Pill-Tabs (`Music` \| `Today` \| `AI`)** | Pemilih tab di bagian tengah header menggunakan animasi *sliding pill* monokrom (`layoutId="activeTabPill"`) untuk berpindah tampilan tanpa mengubah lebar notch |
+| **Pin Mode (`isPinned`)** | Tombol ikon sematan (`Pin`) di sebelah nama `Ryflow` untuk mengunci notch agar tetap terbuka meskipun kursor meninggalkan area atas layar |
+| **Auto-Hold saat Mengetik (`isInputFocused`)** | Menahan notch agar tidak menutup otomatis atau berubah menjadi *click-through* ketika pengguna sedang fokus mengetik di kolom input |
+| **Dimensi Expanded** | Tinggi notch saat terbuka disesuaikan menjadi `580x196px` untuk memberi ruang proporsional bagi konten multi-tab |
+
+**2. Fitur Baru pada Tab `Today`:**
+- **Cuaca Real-Time Otomatis (`fetchWeather` & `getWeatherInfo`):**
+  - Mendeteksi koordinat dan nama kota secara otomatis berdasarkan IP (`get.geojs.io`) dengan *fallback* ke Bandar Lampung (`-5.4292, 105.261`), lalu memperbarui data setiap 15 menit.
+  - Mengambil suhu (`temperature_2m`), kelembapan (`relative_humidity_2m`), dan kondisi cuaca (`weather_code`) melalui **Open-Meteo API** tanpa memerlukan API key.
+  - Mengonversi kode cuaca WMO menjadi label bahasa Indonesia (`Cerah`, `Berawan`, `Berkabut`, `Hujan`, `Badai Petir`) beserta ikon visual yang sesuai.
+- **Kalender Mingguan (`getWeekDays`):**
+  - Menampilkan deretan 7 hari dalam minggu berjalan (`Sen` s/d `Min`) lengkap dengan tanggal dan sorotan warna putih tegas pada hari ini (`isToday`).
+- **Agenda / Quick To-Do List (`localStorage`):**
+  - Pencatat agenda cepat dengan fitur tambah tugas (`Enter`), centang selesai (`toggleTodo`), hapus tugas (`deleteTodo`), serta penghitung progres penyelesaian (`selesai`).
+  - Seluruh data agenda disimpan secara persisten di `localStorage` (`ryflow_todos`) agar tidak hilang saat aplikasi ditutup atau laptop dimatikan.
+
+**3. Persiapan Tab `AI`:**
+- Menambahkan tampilan *placeholder* untuk **Ryflow AI Agent** pada tab `AI` sebelum diintegrasikan dengan API Key pada tahap berikutnya.
+
+**File yang diubah:** `src/App.jsx`
 
 ---
 
