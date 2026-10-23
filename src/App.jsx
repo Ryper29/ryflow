@@ -255,13 +255,61 @@ const tabContentVariants = {
 // ---------------------------------------------------------------------------
 // Helper Multi-Provider AI & Validasi API Key
 // ---------------------------------------------------------------------------
-const GEMINI_MODELS = [
+const DEFAULT_GEMINI_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-flash-latest',
+  'gemini-2.5-flash-lite',
+  'gemini-pro-latest',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-3.0-flash',
 ];
+
+// Mengambil daftar model Gemini yang benar-benar aktif untuk API Key pengguna via ListModels API
+let cachedDiscoveredModels = null;
+let cachedKeyForModels = '';
+
+async function fetchAvailableGeminiModels(cleanKey) {
+  if (cachedDiscoveredModels && cachedKeyForModels === cleanKey) {
+    return cachedDiscoveredModels;
+  }
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(cleanKey)}`
+    );
+    if (!res.ok) return DEFAULT_GEMINI_MODELS;
+    const data = await res.json();
+    if (!Array.isArray(data.models)) return DEFAULT_GEMINI_MODELS;
+
+    const validModels = data.models
+      .filter(
+        (m) =>
+          m.name?.startsWith('models/gemini') &&
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent') &&
+          !/embedding|imagen|veo|tts|audio|robotics|computer-use|aqa|learnlm/i.test(m.name)
+      )
+      .map((m) => m.name.replace(/^models\//, ''));
+
+    // Urutkan agar varian Flash terbaru (3-flash / flash-latest) berada di prioritas paling atas
+    const scoreModel = (id) => {
+      if (id.includes('gemini-3') && id.includes('flash')) return 100;
+      if (id === 'gemini-flash-latest') return 90;
+      if (id.includes('2.5-flash-lite')) return 80;
+      if (id.includes('flash')) return 70;
+      if (id.includes('gemini-3') && id.includes('pro')) return 60;
+      if (id === 'gemini-pro-latest') return 50;
+      return 10;
+    };
+
+    validModels.sort((a, b) => scoreModel(b) - scoreModel(a));
+
+    if (validModels.length > 0) {
+      cachedDiscoveredModels = validModels;
+      cachedKeyForModels = cleanKey;
+      return validModels;
+    }
+  } catch {}
+  return DEFAULT_GEMINI_MODELS;
+}
 
 function validateApiKey(key) {
   const k = (key || '').trim();
@@ -277,11 +325,10 @@ function validateApiKey(key) {
   return { valid: true };
 }
 
-function detectAiProvider(key, geminiModel = GEMINI_MODELS[0]) {
+function detectAiProvider(key, geminiModel = DEFAULT_GEMINI_MODELS[0]) {
   const k = (key || '').trim();
   if (!k) return { id: 'gemini', name: geminiModel, model: geminiModel };
 
-  // Cek sk-ant- terlebih dahulu sebelum sk-
   if (k.startsWith('sk-ant-')) {
     return { id: 'anthropic', name: 'Claude 3.5 Haiku', model: 'claude-3-5-haiku-latest' };
   }
@@ -315,7 +362,7 @@ function mapAiHttpError(status, rawMessage = '') {
   return rawMessage || 'Gagal memproses permintaan AI.';
 }
 
-async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_MODELS[0] }) {
+async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = DEFAULT_GEMINI_MODELS[0] }) {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     throw new Error('Tidak ada koneksi internet.');
   }
@@ -329,12 +376,14 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
   const provider = detectAiProvider(cleanKey, geminiModel);
 
   try {
-    // 1. Gemini (AQ... / AIza...) dengan Auto-Fallback ke daftar GEMINI_MODELS
+    // 1. Gemini (AQ... / AIza...) dengan Auto-Discovery ListModels
     if (provider.id === 'gemini') {
+      const discovered = await fetchAvailableGeminiModels(cleanKey);
       const modelsToTry = [
-        geminiModel,
-        ...GEMINI_MODELS.filter((m) => m !== geminiModel),
+        ...(discovered.includes(geminiModel) ? [geminiModel] : []),
+        ...discovered.filter((m) => m !== geminiModel),
       ];
+
       let lastError = null;
 
       for (const modelName of modelsToTry) {
@@ -351,11 +400,13 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
         const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada respons.';
+          const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada respons.';
+          return { text: replyText, usedModel: modelName, availableModels: discovered };
         }
 
         const errMsg = data.error?.message || '';
-        if (res.status === 404 || /no longer available|not found|not supported/i.test(errMsg)) {
+        // Jika model ditolak karena tidak tersedia / deprecated untuk akun baru, lanjut coba model aktif berikutnya
+        if (res.status === 404 || /no longer available|not found|not supported|deprecated/i.test(errMsg)) {
           lastError = new Error(errMsg);
           continue;
         }
@@ -363,10 +414,10 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
         throw new Error(mapAiHttpError(res.status, errMsg));
       }
 
-      throw lastError || new Error('Semua model Gemini sedang tidak tersedia.');
+      throw lastError || new Error('Tidak ada model Gemini yang tersedia untuk API Key ini.');
     }
 
-    // 2. Grok (grok_ / xai-) dengan fallback mulus ke Groq jika key berasal dari Groq
+    // 2. Grok (grok_ / xai-)
     if (provider.id === 'grok') {
       const endpoints = [
         { url: 'https://api.x.ai/v1/chat/completions', model: 'grok-2-latest' },
@@ -393,7 +444,7 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+          return { text: data.choices?.[0]?.message?.content || 'Tidak ada respons.' };
         }
         lastErr = new Error(mapAiHttpError(res.status, data.error?.message));
       }
@@ -422,7 +473,7 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
       if (!res.ok) {
         throw new Error(mapAiHttpError(res.status, data.error?.message));
       }
-      return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+      return { text: data.choices?.[0]?.message?.content || 'Tidak ada respons.' };
     }
 
     // 4. Anthropic (sk-ant-)
@@ -446,7 +497,7 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
       if (!res.ok) {
         throw new Error(mapAiHttpError(res.status, data.error?.message));
       }
-      return data.content?.[0]?.text || 'Tidak ada respons.';
+      return { text: data.content?.[0]?.text || 'Tidak ada respons.' };
     }
 
     // 5. OpenAI (sk-)
@@ -470,7 +521,7 @@ async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_
     if (!res.ok) {
       throw new Error(mapAiHttpError(res.status, data.error?.message));
     }
-    return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+    return { text: data.choices?.[0]?.message?.content || 'Tidak ada respons.' };
   } catch (err) {
     if (err.name === 'TypeError' || /failed to fetch|network/i.test(err.message)) {
       throw new Error('Tidak ada koneksi internet.');
@@ -545,12 +596,13 @@ export default function App() {
       return '';
     }
   });
+  const [geminiModelsList, setGeminiModelsList] = useState(DEFAULT_GEMINI_MODELS);
   const [geminiModel, setGeminiModel] = useState(() => {
     try {
       const savedModel = localStorage.getItem('ryflow_gemini_model');
-      return GEMINI_MODELS.includes(savedModel) ? savedModel : GEMINI_MODELS[0];
+      return savedModel || DEFAULT_GEMINI_MODELS[0];
     } catch {
-      return GEMINI_MODELS[0];
+      return DEFAULT_GEMINI_MODELS[0];
     }
   });
   const [keyInput, setKeyInput] = useState('');
@@ -563,13 +615,33 @@ export default function App() {
   const [aiError, setAiError] = useState('');
   const [copiedAi, setCopiedAi] = useState(false);
 
+  // Sinkronkan daftar model Gemini yang tersedia saat API Key Gemini dipasang
+  useEffect(() => {
+    if (!aiApiKey) return;
+    const prov = detectAiProvider(aiApiKey, geminiModel);
+    if (prov.id === 'gemini') {
+      fetchAvailableGeminiModels(aiApiKey).then((list) => {
+        if (Array.isArray(list) && list.length > 0) {
+          setGeminiModelsList(list);
+          if (!list.includes(geminiModel)) {
+            setGeminiModel(list[0]);
+            try {
+              localStorage.setItem('ryflow_gemini_model', list[0]);
+            } catch {}
+          }
+        }
+      });
+    }
+  }, [aiApiKey]);
+
   const cycleGeminiModel = () => {
-    const currentIndex = GEMINI_MODELS.indexOf(geminiModel);
-    const nextModel = GEMINI_MODELS[(currentIndex + 1) % GEMINI_MODELS.length];
+    const currentIndex = geminiModelsList.indexOf(geminiModel);
+    const nextModel = geminiModelsList[(currentIndex + 1) % geminiModelsList.length];
     setGeminiModel(nextModel);
+    setAiError('');
     try {
       localStorage.setItem('ryflow_gemini_model', nextModel);
-    } catch { }
+    } catch {}
   };
 
   useEffect(() => {
@@ -925,13 +997,22 @@ export default function App() {
     ].join(' ');
 
     try {
-      const reply = await callAiAgent({
+      const result = await callAiAgent({
         apiKey: aiApiKey,
         prompt: question,
         systemPrompt,
         geminiModel,
       });
-      setAiResponse(reply.trim());
+      setAiResponse((result.text || '').trim());
+      if (result.availableModels?.length) {
+        setGeminiModelsList(result.availableModels);
+      }
+      if (result.usedModel && result.usedModel !== geminiModel) {
+        setGeminiModel(result.usedModel);
+        try {
+          localStorage.setItem('ryflow_gemini_model', result.usedModel);
+        } catch {}
+      }
     } catch (err) {
       setAiError(err.message || 'Gagal memproses permintaan AI.');
     } finally {

@@ -439,5 +439,30 @@ Mengaktifkan fitur **Ryflow AI Agent** secara penuh di tab `AI` dengan dukungan 
 
 ---
 
+### [v0.5.1] — 2026-10-23
+
+#### 🔄 Dynamic Gemini Model Auto-Discovery (`ListModels` API) & Auto-Sync Badge
+
+Perbaikan permanen untuk mengatasi error `404 Not Found` dan pembatasan model pada Google Gemini API (`v1beta`) dengan mengganti daftar model statis menjadi deteksi model aktif secara dinamis dari server Google.
+
+**Latar Belakang Masalah:**
+- Beberapa nama model yang di-*hardcode* sebelumnya mengalami kendala di endpoint `v1beta`: `gemini-1.5-flash` dan `gemini-1.5-pro` telah dihentikan (*retired*), `gemini-2.5-flash` dibatasi untuk akun baru, sedangkan penamaan Gemini 3 Flash di API menggunakan ID `gemini-3-flash-preview` (bukan `gemini-3.0-flash`).
+- Ketika semua model di dalam antrean *fallback* statis ditolak oleh server, fungsi `callAiAgent()` melempar pesan error dari model urutan terakhir (`lastError`), sehingga nama model pada pesan error tidak sesuai dengan *badge* model yang sedang dipilih di UI.
+
+**Solusi & Perubahan Teknis:**
+
+| Komponen / Fungsi | Detail Implementasi |
+|---|---|
+| **`fetchAvailableGeminiModels(cleanKey)`** | Memanggil endpoint resmi `GET /v1beta/models` milik Google untuk mengambil daftar model Gemini yang benar-benar aktif dan mendukung metode `generateContent` pada API Key pengguna |
+| **Filter & Prioritas Skor Model** | Menyaring model khusus non-teks (`embedding`, `imagen`, `veo`, `tts`, `audio`) dan mengurutkan prioritas tertinggi pada varian Flash terbaru (`gemini-3-flash-preview`, `gemini-flash-latest`, `gemini-2.5-flash-lite`) |
+| **Caching Daftar Model** | Menyimpan hasil *discovery* di memori (`cachedDiscoveredModels`) per API Key agar tidak melakukan request berulang setiap kali mengirim pesan |
+| **Auto-Sync UI Badge (`usedModel`)** | Mengembalikan properti `usedModel` dan `availableModels` dari `callAiAgent()` sehingga *badge* pemilih model di tab `AI` dan `localStorage` (`ryflow_gemini_model`) otomatis terkunci ke model yang terbukti berhasil menjawab |
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+
+---
+
 *Tambahkan entri baru di atas bagian ini saat ada perubahan berikutnya.*
 
