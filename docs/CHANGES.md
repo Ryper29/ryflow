@@ -340,7 +340,7 @@ Pembaruan penanganan pengambilan lirik pada API lrclib untuk meningkatkan akuras
 
 ---
 
-### [v0.4.0] — 2026-10-22
+### [v0.3.4] — 2026-10-22
 
 #### 🎬 Restore Bounce Feel pada Animasi Notch
 
@@ -398,6 +398,44 @@ Transformasi Ryflow dari sekadar pengontrol musik menjadi *smart productivity hu
 - Menambahkan tampilan *placeholder* untuk **Ryflow AI Agent** pada tab `AI` sebelum diintegrasikan dengan API Key pada tahap berikutnya.
 
 **File yang diubah:** `src/App.jsx`
+
+---
+
+### [v0.5.0] — 2026-10-23
+
+#### 🤖 Multi-Provider AI Agent, Akurasi Geolokasi Nominatim & Directional Tab Transition
+
+Mengaktifkan fitur **Ryflow AI Agent** secara penuh di tab `AI` dengan dukungan berbagai *provider* populer, memperbaiki akurasi deteksi kota pada cuaca di tab `Today`, serta memoles transisi perpindahan antar-tab agar terasa lebih natural.
+
+**1. Tab `AI` — Multi-Provider AI Agent & Validasi API Key Fleksibel:**
+- **Auto-Detect Provider dari Prefix Key (`detectAiProvider`):**
+  - **Google Gemini:** Mendukung prefix `AQ...` maupun `AIza...`
+  - **Grok (xAI):** Mendukung prefix `grok_...` dan `xai-...` (dengan *fallback* otomatis ke endpoint Groq)
+  - **Groq:** Mendukung prefix `gsk_...` (`llama-3.3-70b-versatile`)
+  - **Anthropic Claude:** Mendukung prefix `sk-ant-...` (`claude-3-5-haiku-latest` dilengkapi header akses *renderer*)
+  - **OpenAI:** Mendukung prefix `sk-...` (`gpt-4o-mini`)
+- **Validasi API Key Longgar (`validateApiKey`):**
+  - Menghapus pembatasan regex kaku yang sebelumnya menolak format key baru; kini cukup memvalidasi bahwa key tidak kosong, tanpa spasi, dan memiliki panjang minimal yang wajar ($\ge 10$ karakter).
+- **Whitelist & Auto-Fallback Model Gemini (`GEMINI_MODELS`):**
+  - Mendukung `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`, dan `gemini-3.0-flash`.
+  - Pengguna dapat mengklik *badge* nama model di tab `AI` untuk mengganti model Gemini secara langsung (`cycleGeminiModel`), serta sistem otomatis melakukan *fallback* ke model berikutnya jika suatu model tidak tersedia pada akun pengguna.
+- **Konteks Real-Time & Quick Prompt Chips:**
+  - AI Agent mengenali konteks lagu yang sedang diputar di Windows GSMTC, suhu cuaca kota saat ini, serta daftar agenda yang belum selesai.
+  - Dilengkapi tombol cepat `🎵 Makna lagu ini` dan `⚡ Fokus hari ini`, fitur salin jawaban (`Copy`), *reset* percakapan, serta pesan *error* HTTP (`401`, `429`, `500`, dan koneksi terputus) yang ramah pengguna.
+
+**2. Akurasi Cuaca & Lokasi (`fetchWeather`):**
+- **Sumber Lokasi Bertingkat:** Menggunakan **Browser Geolocation API** (`navigator.geolocation.getCurrentPosition`) berbasis GPS/Wi-Fi sebagai sumber koordinat utama, dengan *fallback* ke IP geolocation (`geojs.io`) dan *hardcoded fallback* Bandar Lampung.
+- **Reverse Geocoding Nominatim OpenStreetMap:** Mengambil nama kota/kabupaten yang akurat berdasarkan titik koordinat melalui endpoint `nominatim.openstreetmap.org/reverse` (`address.city || address.town || address.county`).
+
+**3. Directional Tab Transition (`tabContentVariants`):**
+- Mengganti transisi tab vertikal yang seragam dengan animasi geser berbasis arah (*directional slide* `x: ±18` mengikuti urutan `['music', 'today', 'ai']`), dikombinasikan dengan *subtle scale* (`0.97` → `1`) dan kurva *cubic-bezier* `[0.25, 0.46, 0.45, 0.94]`.
+
+**4. Perbaikan Minor Pencarian Cover Art:**
+- Memperbaiki spasi pemisah antara `${searchTitle} ${searchArtist}` pada URL pencarian *fallback cover art* iTunes API.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
 
 ---
 

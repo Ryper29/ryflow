@@ -17,6 +17,11 @@ import {
   Trash2,
   Pin,
   Sparkles,
+  Send,
+  KeyRound,
+  Copy,
+  RotateCcw,
+  AlertCircle,
 } from 'lucide-react';
 
 function parseLrc(lrcText) {
@@ -46,7 +51,6 @@ function parseLrc(lrcText) {
 // Helper untuk membandingkan judul/artis saat memilih hasil pencarian lirik
 // ---------------------------------------------------------------------------
 
-// Kunci perbandingan: huruf/angka saja, tanpa aksen/spasi/tanda baca, huruf kecil.
 const normKey = (s) =>
   String(s ?? '').replace(/\s+/g, ' ').trim()
     .normalize('NFKD')
@@ -54,13 +58,9 @@ const normKey = (s) =>
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, '');
 
-// Kunci judul: abaikan kurung dan akhiran " - versi"
 const titleKey = (s) =>
   normKey(String(s ?? '').replace(/[([（【][^)\]）】]*[)\]）】]/g, ' ').replace(/\s+-\s+.*$/, '')) || normKey(s);
 
-// Pilih hasil /search yang benar-benar lagu yang dicari:
-// judul sama DAN artis cocok dengan salah satu petunjuk.
-// Lebih baik "lirik tidak tersedia" daripada lirik lagu lain yang kebetulan berjudul sama.
 function pickBestMatch(results, title, hints) {
   const wanted = titleKey(title);
   if (!wanted) return null;
@@ -72,7 +72,6 @@ function pickBestMatch(results, title, hints) {
       (h) => h === ra || (h.length >= 3 && ra.length >= 3 && (ra.includes(h) || h.includes(ra)))
     );
   });
-  // Utamakan lirik tersinkron, lalu judul yang persis sama (bukan varian live/remaster)
   const score = (r) => (r.syncedLyrics ? 2 : 0) + (normKey(r.trackName) === normKey(title) ? 1 : 0);
   return matches.sort((a, b) => score(b) - score(a))[0] || null;
 }
@@ -80,7 +79,7 @@ function pickBestMatch(results, title, hints) {
 function cleanTrackTitle(title) {
   if (!title) return '';
   return title
-    .replace(/\s*\(.*?(remaster\vert{}version\vert{}edit\vert{}live\vert{}feat\vert{}ft\.).*?\)/gi, '')
+    .replace(/\s*\(.*?(remaster|version|edit|live|feat|ft\.).*?\)/gi, '')
     .replace(/\s*-\s*.*?(remaster|version|edit|live|acoustic).*$/gi, '')
     .replace(/\s+(?:feat\.?|ft\.?)\s+.*$/gi, '')
     .trim();
@@ -90,25 +89,12 @@ function stripVideoSuffixes(str) {
   if (!str) return '';
   let s = str;
 
-  // 1. Tag kurung video / audio / lyrics / visualizer / mv / live / remaster (termasuk bracket Asia)
   s = s.replace(/\s*[([{\u3010\u300C\u300E]\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|hd|4k|m\/?v|performance|live|clip|remaster(?:ed)?|version).*?[)\]}\u3011\u300D\u300F]/gi, '');
-
-  // 2. Kurung sederhana: (Official), [Official], (Lyrics), (Audio), (Visualizer), dll.
   s = s.replace(/\s*[([{\u3010\u300C\u300E]\s*(?:official|lyrics?|audio|visualizer|hd|4k|mv|m\/v|clip|live)\s*[)\]}\u3011\u300D\u300F]/gi, '');
-
-  // 3. M/V atau MV di akhir kata
   s = s.replace(/\s+(?:m\/?v|mv)\s*$/gi, '');
-
-  // 4. Suffix setelah delimiter pipe atau slash: | Official Video, // Official Audio, dll.
   s = s.replace(/\s*[|/]{1,2}\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|hd|4k|m\/?v|clip).*$/gi, '');
-
-  // 5. Pipe umum di akhir
   s = s.replace(/\s*\|\s*.*$/gi, '');
-
-  // 6. Suffix dash di akhir: - Official Video, - Audio, dll.
   s = s.replace(/\s*-\s*(?:official\s+)?(?:music\s+|lyric\s+|lyrics\s+)?(?:video|audio|lyrics?|visualizer|mv|m\/?v|clip).*$/gi, '');
-
-  // 7. Hapus tanda petik pembungkus judul: 'Song Title' -> Song Title
   s = s.trim().replace(/^['"“‘](.*)['"”’]$/, '$1').trim();
 
   return s;
@@ -117,14 +103,10 @@ function stripVideoSuffixes(str) {
 function cleanChannelArtist(artist) {
   if (!artist) return '';
   let cleaned = artist.trim();
-  // Strip " - Topic" (YouTube auto-generated music channels)
   cleaned = cleaned.replace(/\s*-\s*Topic$/i, '');
-  // Strip "VEVO" di akhir (mis. ColdplayVEVO -> Coldplay)
   cleaned = cleaned.replace(/VEVO$/i, '');
-  // Strip "Official Channel", "Official Music", "Official", "Channel"
   cleaned = cleaned.replace(/\s*(?:Official\s*Channel|Official\s*Music|Official|Channel)$/i, '');
   cleaned = cleaned.replace(/Official$/i, '');
-  // Strip "Music" di akhir jika diawali spasi
   cleaned = cleaned.replace(/\s+Music$/i, '');
   return cleaned.trim();
 }
@@ -146,7 +128,6 @@ function parseYouTubeTitle(title, artist) {
   const rawArtist = (artist || '').trim();
   const cleanedChannel = cleanChannelArtist(rawArtist);
 
-  // Cek apakah ada pemisah seperti " - ", " – ", " — "
   const separatorMatch = rawTitle.match(/\s+[-–—]\s+/);
 
   if (separatorMatch) {
@@ -172,7 +153,6 @@ function parseYouTubeTitle(title, artist) {
     }
   }
 
-  // Jika tidak berformat "Artis - Judul", bersihkan video suffixes dari judul
   const cleanedTitle = cleanTrackTitle(stripVideoSuffixes(rawTitle));
   const finalArtist = cleanedChannel || rawArtist;
   const isYouTubeLike = /official|video|audio|lyrics?|visualizer|m\/?v|clip/i.test(rawTitle) || isLikelyChannelName(rawArtist);
@@ -189,7 +169,6 @@ async function queryLrcLib(trackName, artistName, signal, hints = []) {
   const cleanTrack = (trackName || '').trim();
   const cleanArt = (artistName || '').trim();
 
-  // 1. Coba endpoint /api/get jika artistName dan trackName ada (exact match)
   if (cleanTrack && cleanArt) {
     try {
       const primary = cleanArt.split(',')[0].split('&')[0].split(/\s+x\s+/i)[0].trim();
@@ -203,10 +182,6 @@ async function queryLrcLib(trackName, artistName, signal, hints = []) {
     }
   }
 
-  // 2. Coba endpoint /api/search jika belum dapat synced lyrics.
-  // Pakai parameter track_name + artist_name (lebih spesifik dari ?q=)
-  // dan validasi artis via pickBestMatch agar tidak salah ambil lirik
-  // lagu lain yang kebetulan berjudul sama.
   if (!lrcData || !lrcData.syncedLyrics) {
     try {
       if (cleanTrack) {
@@ -246,11 +221,278 @@ function getWeatherInfo(code) {
   return { label: 'Berawan', Icon: Cloud };
 }
 
+// ---------------------------------------------------------------------------
+// Konfigurasi Urutan & Animasi Directional Tab
+// ---------------------------------------------------------------------------
+const TAB_ORDER = ['music', 'today', 'ai'];
+
+const tabContentVariants = {
+  enter: (direction) => ({
+    opacity: 0,
+    x: direction > 0 ? 18 : direction < 0 ? -18 : 0,
+    scale: 0.97,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.22,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+  exit: (direction) => ({
+    opacity: 0,
+    x: direction > 0 ? -18 : direction < 0 ? 18 : 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.14,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  }),
+};
+
+// ---------------------------------------------------------------------------
+// Helper Multi-Provider AI & Validasi API Key
+// ---------------------------------------------------------------------------
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-3.0-flash',
+];
+
+function validateApiKey(key) {
+  const k = (key || '').trim();
+  if (!k) {
+    return { valid: false, message: 'API Key tidak boleh kosong.' };
+  }
+  if (/\s/.test(k)) {
+    return { valid: false, message: 'API Key tidak boleh mengandung spasi.' };
+  }
+  if (k.length < 10) {
+    return { valid: false, message: 'API Key terlalu pendek (minimal 10 karakter).' };
+  }
+  return { valid: true };
+}
+
+function detectAiProvider(key, geminiModel = GEMINI_MODELS[0]) {
+  const k = (key || '').trim();
+  if (!k) return { id: 'gemini', name: geminiModel, model: geminiModel };
+
+  // Cek sk-ant- terlebih dahulu sebelum sk-
+  if (k.startsWith('sk-ant-')) {
+    return { id: 'anthropic', name: 'Claude 3.5 Haiku', model: 'claude-3-5-haiku-latest' };
+  }
+  if (k.startsWith('AQ') || k.startsWith('AIza')) {
+    return { id: 'gemini', name: geminiModel, model: geminiModel };
+  }
+  if (k.startsWith('grok_') || k.startsWith('xai-')) {
+    return { id: 'grok', name: 'Grok', model: 'grok-2-latest' };
+  }
+  if (k.startsWith('gsk_')) {
+    return { id: 'groq', name: 'Groq Llama 3.3', model: 'llama-3.3-70b-versatile' };
+  }
+  if (k.startsWith('sk-')) {
+    return { id: 'openai', name: 'OpenAI GPT-4o Mini', model: 'gpt-4o-mini' };
+  }
+
+  return { id: 'gemini', name: geminiModel, model: geminiModel };
+}
+
+function mapAiHttpError(status, rawMessage = '') {
+  const msg = String(rawMessage).toLowerCase();
+  if (status === 401 || status === 403 || msg.includes('api key not valid') || msg.includes('invalid api key') || msg.includes('authentication')) {
+    return 'API Key salah atau sudah kedaluwarsa. Coba ganti API Key.';
+  }
+  if (status === 429 || msg.includes('quota') || msg.includes('rate limit')) {
+    return 'Terlalu banyak permintaan. Coba lagi beberapa saat.';
+  }
+  if (status >= 500) {
+    return 'Server AI sedang bermasalah. Coba beberapa menit lagi.';
+  }
+  return rawMessage || 'Gagal memproses permintaan AI.';
+}
+
+async function callAiAgent({ apiKey, prompt, systemPrompt, geminiModel = GEMINI_MODELS[0] }) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    throw new Error('Tidak ada koneksi internet.');
+  }
+
+  const cleanKey = (apiKey || '').trim();
+  const validation = validateApiKey(cleanKey);
+  if (!validation.valid) {
+    throw new Error(validation.message);
+  }
+
+  const provider = detectAiProvider(cleanKey, geminiModel);
+
+  try {
+    // 1. Gemini (AQ... / AIza...) dengan Auto-Fallback ke daftar GEMINI_MODELS
+    if (provider.id === 'gemini') {
+      const modelsToTry = [
+        geminiModel,
+        ...GEMINI_MODELS.filter((m) => m !== geminiModel),
+      ];
+      let lastError = null;
+
+      for (const modelName of modelsToTry) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.6, maxOutputTokens: 350 },
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada respons.';
+        }
+
+        const errMsg = data.error?.message || '';
+        if (res.status === 404 || /no longer available|not found|not supported/i.test(errMsg)) {
+          lastError = new Error(errMsg);
+          continue;
+        }
+
+        throw new Error(mapAiHttpError(res.status, errMsg));
+      }
+
+      throw lastError || new Error('Semua model Gemini sedang tidak tersedia.');
+    }
+
+    // 2. Grok (grok_ / xai-) dengan fallback mulus ke Groq jika key berasal dari Groq
+    if (provider.id === 'grok') {
+      const endpoints = [
+        { url: 'https://api.x.ai/v1/chat/completions', model: 'grok-2-latest' },
+        { url: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile' },
+      ];
+      let lastErr = null;
+
+      for (const ep of endpoints) {
+        const res = await fetch(ep.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${cleanKey}`,
+          },
+          body: JSON.stringify({
+            model: ep.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.6,
+            max_tokens: 350,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+        }
+        lastErr = new Error(mapAiHttpError(res.status, data.error?.message));
+      }
+      throw lastErr;
+    }
+
+    // 3. Groq (gsk_)
+    if (provider.id === 'groq') {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cleanKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.6,
+          max_tokens: 350,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(mapAiHttpError(res.status, data.error?.message));
+      }
+      return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+    }
+
+    // 4. Anthropic (sk-ant-)
+    if (provider.id === 'anthropic') {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': cleanKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-haiku-latest',
+          max_tokens: 350,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(mapAiHttpError(res.status, data.error?.message));
+      }
+      return data.content?.[0]?.text || 'Tidak ada respons.';
+    }
+
+    // 5. OpenAI (sk-)
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cleanKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.6,
+        max_tokens: 350,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(mapAiHttpError(res.status, data.error?.message));
+    }
+    return data.choices?.[0]?.message?.content || 'Tidak ada respons.';
+  } catch (err) {
+    if (err.name === 'TypeError' || /failed to fetch|network/i.test(err.message)) {
+      throw new Error('Tidak ada koneksi internet.');
+    }
+    throw err;
+  }
+}
+
 export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [activeTab, setActiveTab] = useState('music'); // 'music' | 'today' | 'ai'
+  const [tabDirection, setTabDirection] = useState(0);
+
+  const handleTabChange = (nextTab) => {
+    if (nextTab === activeTab) return;
+    const prevIdx = TAB_ORDER.indexOf(activeTab);
+    const nextIdx = TAB_ORDER.indexOf(nextTab);
+    setTabDirection(nextIdx > prevIdx ? 1 : -1);
+    setActiveTab(nextTab);
+  };
 
   const [media, setMedia] = useState({
     hasMedia: false,
@@ -294,6 +536,42 @@ export default function App() {
   });
   const [newTodo, setNewTodo] = useState('');
 
+  // State AI Agent (Multi-Provider)
+  const [aiApiKey, setAiApiKey] = useState(() => {
+    try {
+      const savedKey = localStorage.getItem('ryflow_ai_key') || '';
+      return validateApiKey(savedKey).valid ? savedKey : '';
+    } catch {
+      return '';
+    }
+  });
+  const [geminiModel, setGeminiModel] = useState(() => {
+    try {
+      const savedModel = localStorage.getItem('ryflow_gemini_model');
+      return GEMINI_MODELS.includes(savedModel) ? savedModel : GEMINI_MODELS[0];
+    } catch {
+      return GEMINI_MODELS[0];
+    }
+  });
+  const [keyInput, setKeyInput] = useState('');
+  const [keyValidationError, setKeyValidationError] = useState('');
+  const [isEditingKey, setIsEditingKey] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [aiLastQuestion, setAiLastQuestion] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [copiedAi, setCopiedAi] = useState(false);
+
+  const cycleGeminiModel = () => {
+    const currentIndex = GEMINI_MODELS.indexOf(geminiModel);
+    const nextModel = GEMINI_MODELS[(currentIndex + 1) % GEMINI_MODELS.length];
+    setGeminiModel(nextModel);
+    try {
+      localStorage.setItem('ryflow_gemini_model', nextModel);
+    } catch { }
+  };
+
   useEffect(() => {
     try {
       localStorage.setItem('ryflow_todos', JSON.stringify(todos));
@@ -305,23 +583,68 @@ export default function App() {
     return () => clearInterval(clockInterval);
   }, []);
 
-  // Fetch Lokasi & Cuaca Real-Time (Setiap 15 Menit)
+  // Fetch Lokasi Akurat & Cuaca Real-Time
   useEffect(() => {
     let isMounted = true;
+
+    const getBrowserCoordinates = () =>
+      new Promise((resolve, reject) => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+          return reject(new Error('Geolocation tidak didukung'));
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 10 * 60 * 1000 }
+        );
+      });
 
     async function fetchWeather() {
       let lat = -5.4292;
       let lon = 105.261;
       let cityName = 'Bandar Lampung';
+      let gotCoords = false;
 
       try {
-        const geoRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
-        if (geoRes.ok) {
-          const geoData = await geoRes.json();
-          if (geoData.latitude && geoData.longitude) {
-            lat = parseFloat(geoData.latitude);
-            lon = parseFloat(geoData.longitude);
-            cityName = geoData.city || geoData.region || cityName;
+        const coords = await getBrowserCoordinates();
+        if (coords && typeof coords.lat === 'number' && typeof coords.lon === 'number') {
+          lat = coords.lat;
+          lon = coords.lon;
+          gotCoords = true;
+        }
+      } catch { }
+
+      if (!gotCoords) {
+        try {
+          const geoRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.latitude && geoData.longitude) {
+              lat = parseFloat(geoData.latitude);
+              lon = parseFloat(geoData.longitude);
+              cityName = geoData.city || geoData.region || cityName;
+            }
+          }
+        } catch { }
+      }
+
+      try {
+        const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=id`;
+        const nomRes = await fetch(nomUrl, {
+          headers: { Accept: 'application/json' },
+        });
+        if (nomRes.ok) {
+          const nomData = await nomRes.json();
+          const addr = nomData.address || {};
+          const resolvedCity =
+            addr.city ||
+            addr.town ||
+            addr.municipality ||
+            addr.city_district ||
+            addr.county ||
+            addr.state;
+          if (resolvedCity) {
+            cityName = resolvedCity.replace(/^(?:Kota|Kabupaten)\s+/i, '').trim();
           }
         }
       } catch { }
@@ -399,18 +722,12 @@ export default function App() {
     lastFetchedTrack.current = trackKey;
 
     const controller = new AbortController();
-    // Reset fallbackCover saat lagu berganti agar cover lama tidak nempel,
-    // tapi thumbnail dari PowerShell (jika ada) tetap tampil via media.thumbnail
     setFallbackCover(null);
-    // Flag untuk cleanup: jika fetch terpotong (mis. metadata berkedip jadi "Tidak ada judul"),
-    // lepaskan kunci supaya lagu yang sama boleh di-fetch ulang nanti.
     let finished = false;
 
     async function fetchTrackExtras() {
       setLyricStatus('loading');
       setLyrics([]);
-      // Jangan reset fallbackCover dulu — biarkan cover lama tampil
-      // sampai cover baru berhasil di-fetch (mencegah flicker ke ijo)
 
       const parsedYT = parseYouTubeTitle(media.title, media.artist);
       const cleanTitle = cleanTrackTitle(media.title);
@@ -419,8 +736,6 @@ export default function App() {
       const searchTitle = parsedYT.title || cleanTitle;
       const searchArtist = parsedYT.artist || primaryArtist;
 
-      // Petunjuk artis untuk memvalidasi hasil pencarian (lihat pickBestMatch).
-      // Untuk Spotify, cukup nama artis asli. Untuk YouTube, tambahkan hasil parse channel.
       const hints = [
         primaryArtist,
         media.artist,
@@ -428,7 +743,7 @@ export default function App() {
       ].filter((h) => h && h.length > 1);
 
       try {
-        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(`${searchTitle}${searchArtist}`.trim())}&entity=song&limit=1`;
+        const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(`${searchTitle} ${searchArtist}`.trim())}&entity=song&limit=1`;
         const resArt = await fetch(itunesUrl, { signal: controller.signal });
         const dataArt = await resArt.json();
         if (dataArt.results?.[0]?.artworkUrl100) {
@@ -439,17 +754,14 @@ export default function App() {
       try {
         let lrcData = null;
 
-        // 1. Coba fetch lirik dengan judul/artis hasil parse YouTube terlebih dahulu
         lrcData = await queryLrcLib(parsedYT.title, parsedYT.artist, controller.signal, hints);
 
-        // 2. Jika tidak ketemu, fallback ke query original
         if (!lrcData || (!lrcData.syncedLyrics && !lrcData.plainLyrics)) {
           if (cleanTitle !== parsedYT.title || primaryArtist !== parsedYT.artist) {
             lrcData = await queryLrcLib(cleanTitle, primaryArtist, controller.signal, hints);
           }
         }
 
-        // 3. Fallback kedua: coba query hanya dari judul yang sudah dibersihkan tanpa artis
         if (!lrcData || (!lrcData.syncedLyrics && !lrcData.plainLyrics)) {
           const fallbackTitle = parsedYT.title || cleanTitle;
           if (fallbackTitle) {
@@ -490,19 +802,14 @@ export default function App() {
     });
     return () => {
       controller.abort();
-      // Kalau fetch terpotong sebelum selesai (mis. metadata sempat berkedip jadi
-      // "Tidak ada judul"), lepaskan kunci supaya lagu yang sama boleh di-fetch ulang.
-      // Tanpa ini status "Memuat lirik..." bisa nyangkut selamanya.
       if (!finished && lastFetchedTrack.current === trackKey) {
         lastFetchedTrack.current = "";
       }
     };
   }, [media.title, media.artist, media.hasMedia]);
 
-  // Status apakah Notch sedang terbuka
   const isExpanded = isHovered || isPinned || isInputFocused;
 
-  // Top-Bezel Trigger Instan (Tanpa Delay)
   const handleMouseMove = (e) => {
     if (isExpanded) return;
 
@@ -547,7 +854,6 @@ export default function App() {
     triggerControl(`seek:${targetSeconds}`);
   };
 
-  // Fungsi To-Do List
   const handleAddTodo = (e) => {
     e.preventDefault();
     const trimmed = newTodo.trim();
@@ -564,6 +870,85 @@ export default function App() {
 
   const deleteTodo = (id) => {
     setTodos((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleSaveApiKey = (e) => {
+    e.preventDefault();
+    const trimmed = keyInput.trim();
+    const check = validateApiKey(trimmed);
+
+    if (!check.valid) {
+      setKeyValidationError(check.message);
+      return;
+    }
+
+    setAiApiKey(trimmed);
+    try {
+      localStorage.setItem('ryflow_ai_key', trimmed);
+    } catch { }
+    setKeyInput('');
+    setKeyValidationError('');
+    setIsEditingKey(false);
+    setAiError('');
+  };
+
+  const handleRemoveApiKey = () => {
+    setAiApiKey('');
+    setKeyInput('');
+    setKeyValidationError('');
+    setIsEditingKey(true);
+    try {
+      localStorage.removeItem('ryflow_ai_key');
+    } catch { }
+  };
+
+  const askAi = async (customQuestion) => {
+    const question = (customQuestion ?? aiPrompt).trim();
+    if (!question || !aiApiKey || aiLoading) return;
+
+    setAiPrompt('');
+    setAiLastQuestion(question);
+    setAiLoading(true);
+    setAiError('');
+
+    const { label: wLabel } = getWeatherInfo(weather.code);
+    const pendingList = todos.filter((t) => !t.done).map((t) => t.text).join(', ') || 'Tidak ada agenda tertunda';
+    const currentSongContext = media.hasMedia
+      ? `${media.title} oleh ${media.artist} (${media.isPlaying ? 'Sedang diputar' : 'Dijeda'})`
+      : 'Tidak ada lagu yang diputar';
+
+    const systemPrompt = [
+      'Kamu adalah Ryflow AI, asisten pintar yang tinggal di dalam smart notch di bagian atas layar Windows milik Ryper.',
+      'Jawablah selalu dalam bahasa Indonesia yang santai, cerdas, langsung ke inti, dan ringkas (maksimal 2-3 kalimat pendek) agar muat dan nyaman dibaca di layar notch kecil.',
+      'Jangan gunakan markdown heading (#) berlebihan.',
+      `Konteks saat ini -> Lagu: ${currentSongContext} | Cuaca: ${weather.city} ${weather.temp}°C (${wLabel}) | Agenda belum selesai: ${pendingList}.`,
+    ].join(' ');
+
+    try {
+      const reply = await callAiAgent({
+        apiKey: aiApiKey,
+        prompt: question,
+        systemPrompt,
+        geminiModel,
+      });
+      setAiResponse(reply.trim());
+    } catch (err) {
+      setAiError(err.message || 'Gagal memproses permintaan AI.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiSubmit = (e) => {
+    e.preventDefault();
+    askAi();
+  };
+
+  const handleCopyAi = () => {
+    if (!aiResponse) return;
+    navigator.clipboard.writeText(aiResponse);
+    setCopiedAi(true);
+    setTimeout(() => setCopiedAi(false), 1500);
   };
 
   const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
@@ -594,7 +979,6 @@ export default function App() {
     month: 'short',
   })} • ${timeString}`;
 
-  // Susunan 7 Hari Minggu Ini (Senin - Minggu) untuk Kalender Mini
   const getWeekDays = () => {
     const current = new Date(now);
     const dayOfWeek = current.getDay();
@@ -618,10 +1002,11 @@ export default function App() {
   const weekDays = getWeekDays();
   const { label: weatherLabel, Icon: WeatherIcon } = getWeatherInfo(weather.code);
   const completedTodos = todos.filter((t) => t.done).length;
+  const activeProvider = detectAiProvider(aiApiKey, geminiModel);
 
   return (
     <div className="w-screen h-screen flex justify-center items-start pt-0 pointer-events-none">
-      {/* Wrapper Notch MacBook (Tanpa prop 'layout' agar tidak bentrok dengan spring width/height) */}
+      {/* Wrapper Notch MacBook */}
       <motion.div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -665,10 +1050,10 @@ export default function App() {
           />
         </svg>
 
-        {/* Inner Container (Relative + Overflow Hidden) */}
+        {/* Inner Container */}
         <div className="relative w-full h-full overflow-hidden rounded-[inherit]">
           <AnimatePresence initial={false}>
-            {/* TAMPILAN SAAT MENUTUP (IDLE NOTCH - Dikunci Absolute w-[172px] h-[34px]) */}
+            {/* TAMPILAN SAAT MENUTUP (IDLE NOTCH) */}
             {!isExpanded ? (
               <motion.div
                 key="idle-view"
@@ -738,7 +1123,7 @@ export default function App() {
                 </div>
               </motion.div>
             ) : (
-              /* TAMPILAN SAAT MEMBUKA (EXPANDED NOTCH - Dikunci Absolute w-[580px] h-[196px]) */
+              /* TAMPILAN SAAT MEMBUKA (EXPANDED NOTCH) */
               <motion.div
                 key="expanded-view"
                 initial={{ opacity: 0, y: -4 }}
@@ -756,7 +1141,6 @@ export default function App() {
               >
                 {/* Header Bar Atas dengan Micro-Tabs */}
                 <div className="flex items-center justify-between text-[11px] text-white/50 border-b border-white/[0.07] pb-2">
-                  {/* Kiri: Brand Ryflow + Tombol Pin */}
                   <div className="flex items-center gap-2">
                     <span
                       className={`w-2 h-2 rounded-full ${media.isPlaying ? "bg-emerald-400" : "bg-white/30"
@@ -769,8 +1153,8 @@ export default function App() {
                       onClick={togglePin}
                       title={isPinned ? "Lepas sematan" : "Sematkan agar tetap terbuka"}
                       className={`p-1 rounded-md transition cursor-pointer ${isPinned
-                          ? "bg-white/20 text-white"
-                          : "text-white/35 hover:text-white/75 hover:bg-white/[0.06]"
+                        ? "bg-white/20 text-white"
+                        : "text-white/35 hover:text-white/75 hover:bg-white/[0.06]"
                         }`}
                     >
                       <Pin size={11} className={isPinned ? "rotate-45" : ""} />
@@ -788,14 +1172,19 @@ export default function App() {
                       return (
                         <button
                           key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
+                          onClick={() => handleTabChange(tab.id)}
                           className={`relative px-2.5 py-0.5 rounded-full text-[10.5px] font-sans font-semibold transition-colors cursor-pointer ${isActive ? "text-black" : "text-white/55 hover:text-white/85"
                             }`}
                         >
                           {isActive && (
                             <motion.div
                               layoutId="activeTabPill"
-                              transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 380,
+                                damping: 30,
+                                mass: 0.8,
+                              }}
                               className="absolute inset-0 bg-white rounded-full"
                             />
                           )}
@@ -813,18 +1202,18 @@ export default function App() {
 
                 {/* ISI KONTEN BERDASARKAN TAB AKTIF */}
                 <div className="flex-1 flex items-center overflow-hidden pt-1">
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="wait" custom={tabDirection}>
                     {/* ================= TAB 1: MUSIC & LYRICS ================= */}
                     {activeTab === 'music' && (
                       <motion.div
                         key="tab-music"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.16 }}
+                        custom={tabDirection}
+                        variants={tabContentVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
                         className="w-full grid grid-cols-12 gap-4 items-center my-auto py-0.5"
                       >
-                        {/* KIRI: Info Lagu & Kontrol (5 Kolom) */}
                         <div className="col-span-5 flex flex-col gap-2.5 pr-3 border-r border-white/[0.07]">
                           <div className="flex items-center gap-3">
                             <div className="relative w-11 h-11 rounded-lg overflow-hidden shadow-md shrink-0 bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center">
@@ -848,7 +1237,6 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Progress Bar Bersih */}
                           <div className="flex items-center gap-2 text-[10px] font-mono text-white/45">
                             <span className="w-7">{formatTime(media.position)}</span>
                             <div
@@ -871,7 +1259,6 @@ export default function App() {
                             </span>
                           </div>
 
-                          {/* Tombol Kontrol */}
                           <div className="flex items-center justify-center gap-5 pt-0.5">
                             <button
                               onClick={() => triggerControl('prev')}
@@ -898,7 +1285,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* KANAN: Synced Lyrics (7 Kolom) */}
                         <div className="col-span-7 h-28 flex flex-col justify-center overflow-hidden relative pl-1">
                           {lyricStatus === 'loading' && (
                             <div className="flex items-center gap-2 text-xs font-sans text-white/40">
@@ -943,15 +1329,14 @@ export default function App() {
                     {activeTab === 'today' && (
                       <motion.div
                         key="tab-today"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.16 }}
+                        custom={tabDirection}
+                        variants={tabContentVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
                         className="w-full grid grid-cols-12 gap-4 items-center h-full py-0.5"
                       >
-                        {/* KIRI: Cuaca Real-Time & Kalender Mingguan (5 Kolom) */}
                         <div className="col-span-5 flex flex-col justify-between h-full pr-3 border-r border-white/[0.07]">
-                          {/* Kartu Cuaca Ringkas */}
                           <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-lg bg-white/[0.07] flex items-center justify-center text-white/85">
@@ -966,14 +1351,13 @@ export default function App() {
                                     {weatherLabel}
                                   </span>
                                 </div>
-                                <p className="text-[10px] font-sans text-white/40 truncate max-w-[125px] mt-0.5">
+                                <p className="text-[10px] font-sans text-white/40 truncate max-w-[135px] mt-0.5">
                                   {weather.city} • Lembap {weather.humidity}%
                                 </p>
                               </div>
                             </div>
                           </div>
 
-                          {/* Strip Kalender 7 Hari (Senin - Minggu) */}
                           <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-sans font-medium text-white/40 uppercase tracking-wider">
                               Minggu Ini
@@ -983,8 +1367,8 @@ export default function App() {
                                 <div
                                   key={index}
                                   className={`flex flex-col items-center justify-center py-1.5 rounded-lg border transition ${d.isToday
-                                      ? "bg-white text-black border-white font-bold shadow-sm"
-                                      : "bg-white/[0.03] text-white/60 border-white/[0.05]"
+                                    ? "bg-white text-black border-white font-bold shadow-sm"
+                                    : "bg-white/[0.03] text-white/60 border-white/[0.05]"
                                     }`}
                                 >
                                   <span
@@ -1002,7 +1386,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* KANAN: Agenda / Quick To-Do List (7 Kolom) */}
                         <div className="col-span-7 flex flex-col justify-between h-full pl-1 overflow-hidden">
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] font-sans font-semibold text-white/75">
@@ -1030,8 +1413,8 @@ export default function App() {
                                   >
                                     <div
                                       className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center shrink-0 border transition ${item.done
-                                          ? "bg-white border-white text-black"
-                                          : "border-white/30 hover:border-white/60"
+                                        ? "bg-white border-white text-black"
+                                        : "border-white/30 hover:border-white/60"
                                         }`}
                                     >
                                       {item.done && <Check size={10} strokeWidth={3} />}
@@ -1075,25 +1458,205 @@ export default function App() {
                       </motion.div>
                     )}
 
-                    {/* ================= TAB 3: AI AGENT (SIAP UNTUK TAHAP B) ================= */}
+                    {/* ================= TAB 3: AI AGENT (MULTI-PROVIDER) ================= */}
                     {activeTab === 'ai' && (
                       <motion.div
                         key="tab-ai"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.16 }}
-                        className="w-full h-full flex flex-col items-center justify-center text-center gap-1.5"
+                        custom={tabDirection}
+                        variants={tabContentVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        className="w-full h-full flex flex-col justify-between py-0.5"
                       >
-                        <div className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/10 flex items-center justify-center text-white/80">
-                          <Sparkles size={15} />
-                        </div>
-                        <p className="text-xs font-sans font-semibold text-white/85">
-                          Ryflow AI Agent
-                        </p>
-                        <p className="text-[11px] font-sans text-white/40 max-w-xs">
-                          Siap dihubungkan dengan API Key pada Tahap B.
-                        </p>
+                        {/* KONDISI 1: BELUM ADA API KEY ATAU SEDANG EDIT KEY */}
+                        {!aiApiKey || isEditingKey ? (
+                          <div className="my-auto flex flex-col gap-1.5 px-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-md bg-white/[0.08] flex items-center justify-center text-white/85">
+                                  <KeyRound size={13} />
+                                </div>
+                                <div>
+                                  <p className="text-[11.5px] font-sans font-semibold text-white/90 leading-none">
+                                    Hubungkan API Key AI
+                                  </p>
+                                  <p className="text-[10px] font-sans text-white/40 mt-0.5">
+                                    Gemini (<code className="font-mono text-white/60">AQ...</code>/<code className="font-mono text-white/60">AIza...</code>), Grok (<code className="font-mono text-white/60">grok_...</code>), OpenAI (<code className="font-mono text-white/60">sk-...</code>), Anthropic (<code className="font-mono text-white/60">sk-ant-...</code>)
+                                  </p>
+                                </div>
+                              </div>
+                              {aiApiKey && (
+                                <button
+                                  onClick={() => {
+                                    setIsEditingKey(false);
+                                    setKeyValidationError('');
+                                  }}
+                                  className="text-[10px] font-sans text-white/45 hover:text-white cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                              )}
+                            </div>
+
+                            <form onSubmit={handleSaveApiKey} className="flex items-center gap-1.5 mt-0.5">
+                              <input
+                                type="password"
+                                value={keyInput}
+                                onChange={(e) => {
+                                  setKeyInput(e.target.value);
+                                  if (keyValidationError) setKeyValidationError('');
+                                }}
+                                onFocus={() => setIsInputFocused(true)}
+                                onBlur={() => setIsInputFocused(false)}
+                                placeholder="Tempel API Key lalu tekan Enter..."
+                                className={`flex-1 bg-white/[0.05] border ${keyValidationError ? 'border-rose-500/50' : 'border-white/[0.08] focus:border-white/25'
+                                  } rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-white placeholder-white/30 outline-none transition`}
+                              />
+                              <button
+                                type="submit"
+                                className="px-3 py-1.5 rounded-lg bg-white text-black text-[11px] font-sans font-semibold hover:bg-white/90 transition cursor-pointer shrink-0"
+                              >
+                                Simpan
+                              </button>
+                            </form>
+
+                            {keyValidationError && (
+                              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] font-sans">
+                                <AlertCircle size={11} className="shrink-0 text-rose-400" />
+                                <span className="truncate">{keyValidationError}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          /* KONDISI 2: SIAP DIGUNAKAN (CHAT & QUICK ACTIONS) */
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                                {/* Klik badge untuk mengganti model Gemini (2.5-flash / 2.0-flash / 1.5-flash / 1.5-pro) */}
+                                <button
+                                  type="button"
+                                  onClick={activeProvider.id === 'gemini' ? cycleGeminiModel : undefined}
+                                  title={activeProvider.id === 'gemini' ? 'Klik untuk ganti model Gemini' : activeProvider.name}
+                                  className={`px-2 py-0.5 rounded-md bg-white/[0.07] border border-white/[0.06] text-[10px] font-mono text-white/75 shrink-0 ${activeProvider.id === 'gemini' ? 'hover:bg-white/[0.14] hover:text-white cursor-pointer transition' : ''
+                                    }`}
+                                >
+                                  {activeProvider.name}
+                                </button>
+
+                                {media.hasMedia && (
+                                  <button
+                                    onClick={() => askAi(`Jelaskan secara singkat makna lagu "${media.title}" dari ${media.artist}`)}
+                                    className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.06] text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                  >
+                                    🎵 Makna lagu ini
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => askAi('Berikan 1 kalimat motivasi singkat untuk menyelesaikan agendaku hari ini.')}
+                                  className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.06] text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                >
+                                  ⚡ Fokus hari ini
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {aiResponse && (
+                                  <>
+                                    <button
+                                      onClick={handleCopyAi}
+                                      title="Salin jawaban"
+                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                    >
+                                      {copiedAi ? <Check size={11} /> : <Copy size={11} />}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setAiResponse('');
+                                        setAiLastQuestion('');
+                                        setAiError('');
+                                      }}
+                                      title="Bersihkan"
+                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                    >
+                                      <RotateCcw size={11} />
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  onClick={handleRemoveApiKey}
+                                  title="Ganti API Key"
+                                  className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                >
+                                  <KeyRound size={11} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Area Jawaban AI */}
+                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05] overflow-y-auto max-h-[68px] flex flex-col justify-center">
+                              {aiLoading ? (
+                                <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
+                                  <Loader2 size={12} className="animate-spin text-white/70" />
+                                  <span>Sedang berpikir...</span>
+                                </div>
+                              ) : aiError ? (
+                                <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
+                                  <div className="flex items-center gap-1.5 overflow-hidden">
+                                    <AlertCircle size={12} className="text-rose-400 shrink-0" />
+                                    <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
+                                      {aiError}
+                                    </p>
+                                  </div>
+                                  {aiError.includes('API Key') && (
+                                    <button
+                                      onClick={handleRemoveApiKey}
+                                      className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
+                                    >
+                                      Ganti Key
+                                    </button>
+                                  )}
+                                </div>
+                              ) : aiResponse ? (
+                                <div className="flex flex-col gap-0.5">
+                                  {aiLastQuestion && (
+                                    <p className="text-[10px] font-sans text-white/35 truncate">
+                                      Q: {aiLastQuestion}
+                                    </p>
+                                  )}
+                                  <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
+                                    {aiResponse}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] font-sans text-white/30">
+                                  Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Baris Input Prompt */}
+                            <form onSubmit={handleAiSubmit} className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                onFocus={() => setIsInputFocused(true)}
+                                onBlur={() => setIsInputFocused(false)}
+                                placeholder="Ketik pertanyaan lalu tekan Enter..."
+                                className="flex-1 bg-white/[0.05] border border-white/[0.08] focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
+                              />
+                              <button
+                                type="submit"
+                                disabled={aiLoading}
+                                className="p-1.5 rounded-lg bg-white text-black hover:bg-white/90 disabled:opacity-40 transition cursor-pointer shrink-0"
+                              >
+                                <Send size={12} />
+                              </button>
+                            </form>
+                          </>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
