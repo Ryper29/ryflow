@@ -464,5 +464,30 @@ Perbaikan permanen untuk mengatasi error `404 Not Found` dan pembatasan model pa
 
 ---
 
+### [v0.5.2] — 2026-10-24
+
+#### 🕒 Penambahan Konteks Waktu Nyata, Kelembapan Cuaca, dan Penyempurnaan System Prompt AI Agent
+
+Memperkaya konteks sistem dan waktu nyata pada **Ryflow AI Agent** di tab `AI` agar asisten dapat mengenali hari, tanggal lengkap, jam aktif (WIB), serta rincian cuaca dan kelembapan terkini saat menjawab pertanyaan Ryper.
+
+**Latar Belakang & Kebutuhan:**
+- Sebelumnya, prompt sistem hanya menyertakan konteks musik, cuaca dasar (kota & suhu), dan agenda tertunda tanpa informasi hari, tanggal, jam, maupun persentase kelembapan.
+- Akibatnya, ketika pengguna menanyakan waktu atau membutuhkan saran kontekstual berbasis waktu/momen hari ini, AI belum memiliki referensi waktu lokal secara langsung.
+
+**Solusi & Perubahan Teknis:**
+
+| Komponen / Variabel | Detail Implementasi |
+|---|---|
+| **`fullDateString`** | Memformat objek `Date` ke penanggalan lokal bahasa Indonesia (`id-ID`) lengkap dengan nama hari, tanggal, bulan, dan tahun (contoh: *Sabtu, 24 Oktober 2026*) |
+| **`fullTimeString`** | Memformat jam dan menit format 24 jam (`en-GB`, contoh: *19:45*) berzona waktu WIB |
+| **Penyempurnaan `systemPrompt`** | Mengintegrasikan tanggal lengkap, jam WIB, lokasi & cuaca (suhu, label cuaca, kelembapan `${weather.humidity}%`), lagu yang sedang diputar, serta agenda belum selesai ke dalam konteks sistem AI |
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+- `docs/CHANGES.md`
+
+---
+
 *Tambahkan entri baru di atas bagian ini saat ada perubahan berikutnya.*
 

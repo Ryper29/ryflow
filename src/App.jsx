@@ -983,6 +983,18 @@ export default function App() {
     setAiLoading(true);
     setAiError('');
 
+    const currentMoment = new Date();
+    const fullDateString = currentMoment.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const fullTimeString = currentMoment.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
     const { label: wLabel } = getWeatherInfo(weather.code);
     const pendingList = todos.filter((t) => !t.done).map((t) => t.text).join(', ') || 'Tidak ada agenda tertunda';
     const currentSongContext = media.hasMedia
@@ -993,7 +1005,7 @@ export default function App() {
       'Kamu adalah Ryflow AI, asisten pintar yang tinggal di dalam smart notch di bagian atas layar Windows milik Ryper.',
       'Jawablah selalu dalam bahasa Indonesia yang santai, cerdas, langsung ke inti, dan ringkas (maksimal 2-3 kalimat pendek) agar muat dan nyaman dibaca di layar notch kecil.',
       'Jangan gunakan markdown heading (#) berlebihan.',
-      `Konteks saat ini -> Lagu: ${currentSongContext} | Cuaca: ${weather.city} ${weather.temp}°C (${wLabel}) | Agenda belum selesai: ${pendingList}.`,
+      `Konteks waktu & sistem saat ini -> Hari/Tanggal: ${fullDateString} | Jam: ${fullTimeString} WIB | Lokasi & Cuaca: ${weather.city}, ${weather.temp}°C (${wLabel}, kelembapan ${weather.humidity}%) | Lagu diputar: ${currentSongContext} | Agenda belum selesai: ${pendingList}.`,
     ].join(' ');
 
     try {
