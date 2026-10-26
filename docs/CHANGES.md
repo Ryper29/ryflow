@@ -489,5 +489,39 @@ Memperkaya konteks sistem dan waktu nyata pada **Ryflow AI Agent** di tab `AI` a
 
 ---
 
+### [v0.5.3] — 2026-10-27
+
+#### 🎨 Normalisasi Tailwind CSS v4 Canonical Classes & Pembersihan Linter
+
+Membersihkan seluruh 46 notifikasi di panel *Problems* IDE yang berasal dari rekomendasi *canonical classes* ekstensi **Tailwind CSS IntelliSense** (`suggestCanonicalClasses`), serta membersihkan *unused import* pada linter.
+
+**Latar Belakang:**
+- Pada Tailwind CSS v4, penggunaan sintaks *arbitrary value* (seperti `/[0.08]`, `[12px]`, `[68px]`) disarankan untuk ditulis menggunakan skala kanonikal resmi Tailwind agar class lebih ringkas, konsisten, dan mudah dipelihara.
+- Sebanyak 46 peringatan muncul di tab *Problems* pada `src/App.jsx`.
+
+**Perubahan Teknis & Normalisasi Class:**
+
+| Kategori | Sintaks Sebelumnya | Sintaks Kanonikal (Baru) | Contoh di `App.jsx` |
+|---|---|---|---|
+| **Opasitas Warna** | `/[0.03]`, `/[0.04]`, `/[0.05]`, `/[0.06]`, `/[0.08]`, `/[0.09]` | `/3`, `/4`, `/5`, `/6`, `/8`, `/9` | `border-white/8`, `bg-white/5`, `hover:bg-white/6`, `hover:bg-white/9` |
+| **Dimensi Statis** | `w-[12px] h-[12px]`, `w-[2px]`, `gap-[2px]` | `w-3 h-3`, `w-0.5`, `gap-0.5` | Bahu telinga notch (SVG ears) & waveform audio idle |
+| **Dimensi Notch** | `w-[172px] h-[34px]`, `w-[580px] h-[196px]` | `w-43 h-8.5`, `w-145 h-49` | Ukuran idle pill & expanded container |
+| **Batas Maksimal** | `max-w-[135px]`, `max-h-[68px]` | `max-w-33.75`, `max-h-17` | Kota cuaca & container scroll agenda/AI response |
+| **Radius Sudut** | `rounded-[4px]` | `rounded-sm` | Checkbox todo list agenda hari ini |
+
+**Pembersihan Import:**
+- Menghapus import `Sparkles` dari `lucide-react` di header `src/App.jsx` yang tidak digunakan (*unused import*), mengurangi peringatan linter `oxlint`.
+
+**Verifikasi:**
+- Panel *Problems* IDE bersih dari 46 notifikasi `suggestCanonicalClasses`.
+- `npm run build` dan `npm run lint` terverifikasi sukses tanpa error.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `package.json`
+- `docs/CHANGES.md`
+
+---
+
 *Tambahkan entri baru di atas bagian ini saat ada perubahan berikutnya.*
 

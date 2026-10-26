@@ -16,7 +16,6 @@ import {
   Check,
   Trash2,
   Pin,
-  Sparkles,
   Send,
   KeyRound,
   Copy,
@@ -1117,11 +1116,11 @@ export default function App() {
           stiffness: 380,
           damping: 24,
         }}
-        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/[0.08] shadow-[0_12px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl origin-top"
+        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/8 shadow-[0_12px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl origin-top"
       >
         {/* Lekukan Bahu Kiri Atas (MacBook Left Ear) */}
         <svg
-          className="absolute -left-[12px] top-0 w-[12px] h-[12px] pointer-events-none"
+          className="absolute -left-3 top-0 w-3 h-3 pointer-events-none"
           viewBox="0 0 12 12"
           fill="none"
         >
@@ -1133,7 +1132,7 @@ export default function App() {
 
         {/* Lekukan Bahu Kanan Atas (MacBook Right Ear) */}
         <svg
-          className="absolute -right-[12px] top-0 w-[12px] h-[12px] pointer-events-none"
+          className="absolute -right-3 top-0 w-3 h-3 pointer-events-none"
           viewBox="0 0 12 12"
           fill="none"
         >
@@ -1164,7 +1163,7 @@ export default function App() {
                   y: -4,
                   transition: { duration: 0.08 },
                 }}
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-[172px] h-[34px] px-3.5 flex items-center justify-between text-xs font-sans font-semibold tracking-wide"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-43 h-8.5 px-3.5 flex items-center justify-between text-xs font-sans font-semibold tracking-wide"
               >
                 {/* Vinyl Cover Art */}
                 {displayCover ? (
@@ -1198,7 +1197,7 @@ export default function App() {
                 </span>
 
                 {/* Minimalist Monochrome Waveform */}
-                <div className="flex items-center gap-[2px] h-3">
+                <div className="flex items-center gap-0.5 h-3">
                   {[0.45, 0.95, 0.55, 0.85, 0.4].map((h, i) => (
                     <motion.span
                       key={i}
@@ -1210,7 +1209,7 @@ export default function App() {
                         duration: 0.65 + i * 0.12,
                         ease: "easeInOut",
                       }}
-                      className="w-[2px] bg-white/75 rounded-full"
+                      className="w-0.5 bg-white/75 rounded-full"
                     />
                   ))}
                 </div>
@@ -1230,7 +1229,7 @@ export default function App() {
                   y: -4,
                   transition: { duration: 0.08, delay: 0 },
                 }}
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-[580px] h-[196px] px-4 py-3 flex flex-col justify-between z-10"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-145 h-49 px-4 py-3 flex flex-col justify-between z-10"
               >
                 {/* Header Bar Atas dengan Micro-Tabs */}
                 <div className="flex items-center justify-between text-[11px] text-white/50 border-b border-white/[0.07] pb-2">
@@ -1247,7 +1246,7 @@ export default function App() {
                       title={isPinned ? "Lepas sematan" : "Sematkan agar tetap terbuka"}
                       className={`p-1 rounded-md transition cursor-pointer ${isPinned
                         ? "bg-white/20 text-white"
-                        : "text-white/35 hover:text-white/75 hover:bg-white/[0.06]"
+                        : "text-white/35 hover:text-white/75 hover:bg-white/6"
                         }`}
                     >
                       <Pin size={11} className={isPinned ? "rotate-45" : ""} />
@@ -1255,7 +1254,7 @@ export default function App() {
                   </div>
 
                   {/* Tengah: Micro Pill-Tabs (Music | Today | AI) */}
-                  <div className="flex items-center gap-1 bg-white/[0.05] p-0.5 rounded-full border border-white/[0.06]">
+                  <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-full border border-white/6">
                     {[
                       { id: 'music', label: 'Music' },
                       { id: 'today', label: 'Today' },
@@ -1309,7 +1308,7 @@ export default function App() {
                       >
                         <div className="col-span-5 flex flex-col gap-2.5 pr-3 border-r border-white/[0.07]">
                           <div className="flex items-center gap-3">
-                            <div className="relative w-11 h-11 rounded-lg overflow-hidden shadow-md shrink-0 bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center">
+                            <div className="relative w-11 h-11 rounded-lg overflow-hidden shadow-md shrink-0 bg-white/6 ring-1 ring-white/10 flex items-center justify-center">
                               {displayCover ? (
                                 <img
                                   src={displayCover}
@@ -1430,7 +1429,7 @@ export default function App() {
                         className="w-full grid grid-cols-12 gap-4 items-center h-full py-0.5"
                       >
                         <div className="col-span-5 flex flex-col justify-between h-full pr-3 border-r border-white/[0.07]">
-                          <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2">
+                          <div className="flex items-center justify-between bg-white/4 border border-white/6 rounded-xl px-3 py-2">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-lg bg-white/[0.07] flex items-center justify-center text-white/85">
                                 <WeatherIcon size={18} />
@@ -1444,7 +1443,7 @@ export default function App() {
                                     {weatherLabel}
                                   </span>
                                 </div>
-                                <p className="text-[10px] font-sans text-white/40 truncate max-w-[135px] mt-0.5">
+                                <p className="text-[10px] font-sans text-white/40 truncate max-w-33.75 mt-0.5">
                                   {weather.city} • Lembap {weather.humidity}%
                                 </p>
                               </div>
@@ -1461,7 +1460,7 @@ export default function App() {
                                   key={index}
                                   className={`flex flex-col items-center justify-center py-1.5 rounded-lg border transition ${d.isToday
                                     ? "bg-white text-black border-white font-bold shadow-sm"
-                                    : "bg-white/[0.03] text-white/60 border-white/[0.05]"
+                                    : "bg-white/3 text-white/60 border-white/5"
                                     }`}
                                 >
                                   <span
@@ -1489,7 +1488,7 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="flex-1 overflow-y-auto my-1.5 pr-1 flex flex-col gap-1 max-h-[68px]">
+                          <div className="flex-1 overflow-y-auto my-1.5 pr-1 flex flex-col gap-1 max-h-17">
                             {todos.length === 0 ? (
                               <p className="text-[11px] font-sans text-white/30 my-auto">
                                 Belum ada agenda. Ketik di bawah untuk menambah.
@@ -1498,14 +1497,14 @@ export default function App() {
                               todos.map((item) => (
                                 <div
                                   key={item.id}
-                                  className="group flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/[0.03] hover:bg-white/[0.06] transition"
+                                  className="group flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/3 hover:bg-white/6 transition"
                                 >
                                   <button
                                     onClick={() => toggleTodo(item.id)}
                                     className="flex items-center gap-2 text-left flex-1 overflow-hidden cursor-pointer"
                                   >
                                     <div
-                                      className={`w-3.5 h-3.5 rounded-[4px] flex items-center justify-center shrink-0 border transition ${item.done
+                                      className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center shrink-0 border transition ${item.done
                                         ? "bg-white border-white text-black"
                                         : "border-white/30 hover:border-white/60"
                                         }`}
@@ -1538,7 +1537,7 @@ export default function App() {
                               onFocus={() => setIsInputFocused(true)}
                               onBlur={() => setIsInputFocused(false)}
                               placeholder="Tambah agenda baru lalu tekan Enter..."
-                              className="flex-1 bg-white/[0.05] border border-white/[0.08] focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
+                              className="flex-1 bg-white/5 border border-white/8 focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
                             />
                             <button
                               type="submit"
@@ -1567,7 +1566,7 @@ export default function App() {
                           <div className="my-auto flex flex-col gap-1.5 px-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-md bg-white/[0.08] flex items-center justify-center text-white/85">
+                                <div className="w-6 h-6 rounded-md bg-white/8 flex items-center justify-center text-white/85">
                                   <KeyRound size={13} />
                                 </div>
                                 <div>
@@ -1603,7 +1602,7 @@ export default function App() {
                                 onFocus={() => setIsInputFocused(true)}
                                 onBlur={() => setIsInputFocused(false)}
                                 placeholder="Tempel API Key lalu tekan Enter..."
-                                className={`flex-1 bg-white/[0.05] border ${keyValidationError ? 'border-rose-500/50' : 'border-white/[0.08] focus:border-white/25'
+                                className={`flex-1 bg-white/5 border ${keyValidationError ? 'border-rose-500/50' : 'border-white/8 focus:border-white/25'
                                   } rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-white placeholder-white/30 outline-none transition`}
                               />
                               <button
@@ -1631,7 +1630,7 @@ export default function App() {
                                   type="button"
                                   onClick={activeProvider.id === 'gemini' ? cycleGeminiModel : undefined}
                                   title={activeProvider.id === 'gemini' ? 'Klik untuk ganti model Gemini' : activeProvider.name}
-                                  className={`px-2 py-0.5 rounded-md bg-white/[0.07] border border-white/[0.06] text-[10px] font-mono text-white/75 shrink-0 ${activeProvider.id === 'gemini' ? 'hover:bg-white/[0.14] hover:text-white cursor-pointer transition' : ''
+                                  className={`px-2 py-0.5 rounded-md bg-white/[0.07] border border-white/6 text-[10px] font-mono text-white/75 shrink-0 ${activeProvider.id === 'gemini' ? 'hover:bg-white/[0.14] hover:text-white cursor-pointer transition' : ''
                                     }`}
                                 >
                                   {activeProvider.name}
@@ -1640,7 +1639,7 @@ export default function App() {
                                 {media.hasMedia && (
                                   <button
                                     onClick={() => askAi(`Jelaskan secara singkat makna lagu "${media.title}" dari ${media.artist}`)}
-                                    className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.06] text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                    className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
                                   >
                                     🎵 Makna lagu ini
                                   </button>
@@ -1648,7 +1647,7 @@ export default function App() {
 
                                 <button
                                   onClick={() => askAi('Berikan 1 kalimat motivasi singkat untuk menyelesaikan agendaku hari ini.')}
-                                  className="px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.06] text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                  className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
                                 >
                                   ⚡ Fokus hari ini
                                 </button>
@@ -1660,7 +1659,7 @@ export default function App() {
                                     <button
                                       onClick={handleCopyAi}
                                       title="Salin jawaban"
-                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
                                     >
                                       {copiedAi ? <Check size={11} /> : <Copy size={11} />}
                                     </button>
@@ -1671,7 +1670,7 @@ export default function App() {
                                         setAiError('');
                                       }}
                                       title="Bersihkan"
-                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
                                     >
                                       <RotateCcw size={11} />
                                     </button>
@@ -1680,7 +1679,7 @@ export default function App() {
                                 <button
                                   onClick={handleRemoveApiKey}
                                   title="Ganti API Key"
-                                  className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
+                                  className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
                                 >
                                   <KeyRound size={11} />
                                 </button>
@@ -1688,7 +1687,7 @@ export default function App() {
                             </div>
 
                             {/* Area Jawaban AI */}
-                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05] overflow-y-auto max-h-[68px] flex flex-col justify-center">
+                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col justify-center">
                               {aiLoading ? (
                                 <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
                                   <Loader2 size={12} className="animate-spin text-white/70" />
@@ -1738,7 +1737,7 @@ export default function App() {
                                 onFocus={() => setIsInputFocused(true)}
                                 onBlur={() => setIsInputFocused(false)}
                                 placeholder="Ketik pertanyaan lalu tekan Enter..."
-                                className="flex-1 bg-white/[0.05] border border-white/[0.08] focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
+                                className="flex-1 bg-white/5 border border-white/8 focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
                               />
                               <button
                                 type="submit"
