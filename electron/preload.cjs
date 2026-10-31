@@ -11,5 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     sendMediaControl: (action) => {
         ipcRenderer.send('media-control', action);
-    }
+    },
+    getAiKey: () => ipcRenderer.invoke('get-ai-key'),
+    setAiKey: (key) => ipcRenderer.invoke('set-ai-key', key),
+    clearAiKey: () => ipcRenderer.invoke('clear-ai-key')
 });

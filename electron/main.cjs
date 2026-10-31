@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -13,7 +13,12 @@ if (!gotTheLock) {
 
 let mainWindow;
 let mediaProcess;
+let mediaRestartTimer;
+let isQuitting = false;
 let tray = null;
+
+const allowedMediaCommands = new Set(['playpause', 'next', 'prev']);
+const encryptedKeyPath = path.join(app.getPath('userData'), 'ryflow-ai-key.bin');
 
 // File perintah ditaruh di folder temp agar aman ditulis di mode produksi
 const cmdFilePath = path.join(app.getPath('temp'), 'ryflow-media.cmd');
@@ -60,8 +65,15 @@ function startMediaBridge() {
         console.error('[MediaBridge PS Error]:', data.toString());
     });
 
-    mediaProcess.on('exit', () => {
+    mediaProcess.on('exit', (_code, signal) => {
         mediaProcess = null;
+        if (!isQuitting && !mediaRestartTimer) {
+            console.error(`[MediaBridge Exit]: ${signal || 'process exited'}`);
+            mediaRestartTimer = setTimeout(() => {
+                mediaRestartTimer = null;
+                startMediaBridge();
+            }, 2000);
+        }
     });
 }
 
@@ -144,16 +156,52 @@ function createTray() {
 
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
     const win = BrowserWindow.fromWebContents(event.sender);
-    if (win) {
-        win.setIgnoreMouseEvents(ignore, options);
-    }
+    if (!win || typeof ignore !== 'boolean') return;
+    const safeOptions = options && options.forward === true ? { forward: true } : undefined;
+    win.setIgnoreMouseEvents(ignore, safeOptions);
 });
 
 ipcMain.on('media-control', (_event, action) => {
+    const command = typeof action === 'string' ? action.trim() : '';
+    const isSeek = /^seek:(?:0|[1-9]\d*)(?:\.\d+)?$/.test(command);
+    if (!allowedMediaCommands.has(command) && !isSeek) return;
     try {
-        fs.writeFileSync(cmdFilePath, String(action), 'utf8');
+        fs.writeFileSync(cmdFilePath, command, 'utf8');
     } catch (err) {
         console.error('[MediaBridge Cmd Error]:', err.message);
+    }
+});
+
+ipcMain.handle('get-ai-key', () => {
+    if (!safeStorage.isEncryptionAvailable() || !fs.existsSync(encryptedKeyPath)) return '';
+    try {
+        return safeStorage.decryptString(fs.readFileSync(encryptedKeyPath));
+    } catch (err) {
+        console.error('[AI Key Read Error]:', err.message);
+        return '';
+    }
+});
+
+ipcMain.handle('set-ai-key', (_event, key) => {
+    if (typeof key !== 'string' || key.length > 4096 || /[\r\n]/.test(key)) return false;
+    if (!safeStorage.isEncryptionAvailable()) return false;
+    try {
+        fs.mkdirSync(path.dirname(encryptedKeyPath), { recursive: true });
+        fs.writeFileSync(encryptedKeyPath, safeStorage.encryptString(key));
+        return true;
+    } catch (err) {
+        console.error('[AI Key Write Error]:', err.message);
+        return false;
+    }
+});
+
+ipcMain.handle('clear-ai-key', () => {
+    try {
+        if (fs.existsSync(encryptedKeyPath)) fs.unlinkSync(encryptedKeyPath);
+        return true;
+    } catch (err) {
+        console.error('[AI Key Clear Error]:', err.message);
+        return false;
     }
 });
 
@@ -180,6 +228,8 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
+    isQuitting = true;
+    if (mediaRestartTimer) clearTimeout(mediaRestartTimer);
     if (mediaProcess) {
         mediaProcess.kill();
     }

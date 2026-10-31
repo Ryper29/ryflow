@@ -489,6 +489,47 @@ Memperkaya konteks sistem dan waktu nyata pada **Ryflow AI Agent** di tab `AI` a
 
 ---
 
+### [v0.5.5] — 2026-10-31
+
+#### 🧹 Pembersihan Warning Linter React
+
+- Menginisialisasi state waktu dengan lazy initializer agar `Date` tidak dibuat ulang pada setiap render.
+- Menambahkan `geminiModel` ke dependency array sinkronisasi model Gemini agar perubahan model selalu diproses secara konsisten.
+- `npm run lint` kini selesai tanpa warning.
+- `npm run build` berhasil.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `docs/CHANGES.md`
+
+---
+
+### [v0.5.4] — 2026-10-31
+
+#### 🔐 Penguatan Keamanan IPC, Media Bridge, dan Penyimpanan API Key
+
+Meningkatkan keamanan komunikasi Electron serta ketahanan media bridge agar aplikasi lebih aman dan tetap pulih ketika proses PowerShell berhenti.
+
+**Perubahan utama:**
+- Menambahkan whitelist IPC untuk command media `playpause`, `next`, `prev`, dan format `seek:<angka>`.
+- Memvalidasi nilai `setIgnoreMouseEvents` dan hanya menerima opsi `forward` yang diizinkan.
+- Menambahkan restart otomatis media bridge setelah proses berhenti, dengan jeda dua detik dan penghentian restart saat aplikasi ditutup.
+- Memindahkan API key AI dari `localStorage` ke Electron `safeStorage` melalui IPC (`getAiKey`, `setAiKey`, `clearAiKey`).
+- Menambahkan migrasi satu kali dari `localStorage` lama ke penyimpanan terenkripsi jika tersedia.
+- Menambahkan validasi tipe, panjang, dan karakter baris baru pada API key yang diterima IPC.
+
+**Verifikasi:**
+- `npm run build` berhasil.
+- `npm run lint` berhasil tanpa error; masih terdapat dua warning React yang sudah ada terkait pemanggilan `Date` saat render dan dependency `geminiModel`.
+
+**File yang diubah:**
+- `electron/main.cjs`
+- `electron/preload.cjs`
+- `src/App.jsx`
+- `docs/CHANGES.md`
+
+---
+
 ### [v0.5.3] — 2026-10-27
 
 #### 🎨 Normalisasi Tailwind CSS v4 Canonical Classes & Pembersihan Linter

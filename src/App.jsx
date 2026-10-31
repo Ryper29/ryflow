@@ -559,7 +559,7 @@ export default function App() {
   const [fallbackCover, setFallbackCover] = useState(null);
   const lastFetchedTrack = useRef("");
 
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(() => new Date());
 
   // State Cuaca (Open-Meteo)
   const [weather, setWeather] = useState({
@@ -587,14 +587,7 @@ export default function App() {
   const [newTodo, setNewTodo] = useState('');
 
   // State AI Agent (Multi-Provider)
-  const [aiApiKey, setAiApiKey] = useState(() => {
-    try {
-      const savedKey = localStorage.getItem('ryflow_ai_key') || '';
-      return validateApiKey(savedKey).valid ? savedKey : '';
-    } catch {
-      return '';
-    }
-  });
+  const [aiApiKey, setAiApiKey] = useState('');
   const [geminiModelsList, setGeminiModelsList] = useState(DEFAULT_GEMINI_MODELS);
   const [geminiModel, setGeminiModel] = useState(() => {
     try {
@@ -614,6 +607,24 @@ export default function App() {
   const [aiError, setAiError] = useState('');
   const [copiedAi, setCopiedAi] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    const loadKey = async () => {
+      const secureKey = await window.electronAPI?.getAiKey?.();
+      if (validateApiKey(secureKey || '').valid) {
+        if (active) setAiApiKey(secureKey);
+        return;
+      }
+      const legacyKey = localStorage.getItem('ryflow_ai_key') || '';
+      if (!validateApiKey(legacyKey).valid) return;
+      const migrated = await window.electronAPI?.setAiKey?.(legacyKey);
+      if (migrated) localStorage.removeItem('ryflow_ai_key');
+      if (active) setAiApiKey(legacyKey);
+    };
+    loadKey();
+    return () => { active = false; };
+  }, []);
+
   // Sinkronkan daftar model Gemini yang tersedia saat API Key Gemini dipasang
   useEffect(() => {
     if (!aiApiKey) return;
@@ -631,7 +642,7 @@ export default function App() {
         }
       });
     }
-  }, [aiApiKey]);
+  }, [aiApiKey, geminiModel]);
 
   const cycleGeminiModel = () => {
     const currentIndex = geminiModelsList.indexOf(geminiModel);
@@ -943,7 +954,7 @@ export default function App() {
     setTodos((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSaveApiKey = (e) => {
+  const handleSaveApiKey = async (e) => {
     e.preventDefault();
     const trimmed = keyInput.trim();
     const check = validateApiKey(trimmed);
@@ -953,24 +964,24 @@ export default function App() {
       return;
     }
 
+    const stored = await window.electronAPI?.setAiKey?.(trimmed);
+    if (!stored && window.electronAPI?.setAiKey) {
+      setKeyValidationError('Penyimpanan aman tidak tersedia.');
+      return;
+    }
     setAiApiKey(trimmed);
-    try {
-      localStorage.setItem('ryflow_ai_key', trimmed);
-    } catch { }
     setKeyInput('');
     setKeyValidationError('');
     setIsEditingKey(false);
     setAiError('');
   };
 
-  const handleRemoveApiKey = () => {
+  const handleRemoveApiKey = async () => {
     setAiApiKey('');
     setKeyInput('');
     setKeyValidationError('');
     setIsEditingKey(true);
-    try {
-      localStorage.removeItem('ryflow_ai_key');
-    } catch { }
+    await window.electronAPI?.clearAiKey?.();
   };
 
   const askAi = async (customQuestion) => {
