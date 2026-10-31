@@ -489,47 +489,6 @@ Memperkaya konteks sistem dan waktu nyata pada **Ryflow AI Agent** di tab `AI` a
 
 ---
 
-### [v0.5.5] — 2026-10-31
-
-#### 🧹 Pembersihan Warning Linter React
-
-- Menginisialisasi state waktu dengan lazy initializer agar `Date` tidak dibuat ulang pada setiap render.
-- Menambahkan `geminiModel` ke dependency array sinkronisasi model Gemini agar perubahan model selalu diproses secara konsisten.
-- `npm run lint` kini selesai tanpa warning.
-- `npm run build` berhasil.
-
-**File yang diubah:**
-- `src/App.jsx`
-- `docs/CHANGES.md`
-
----
-
-### [v0.5.4] — 2026-10-31
-
-#### 🔐 Penguatan Keamanan IPC, Media Bridge, dan Penyimpanan API Key
-
-Meningkatkan keamanan komunikasi Electron serta ketahanan media bridge agar aplikasi lebih aman dan tetap pulih ketika proses PowerShell berhenti.
-
-**Perubahan utama:**
-- Menambahkan whitelist IPC untuk command media `playpause`, `next`, `prev`, dan format `seek:<angka>`.
-- Memvalidasi nilai `setIgnoreMouseEvents` dan hanya menerima opsi `forward` yang diizinkan.
-- Menambahkan restart otomatis media bridge setelah proses berhenti, dengan jeda dua detik dan penghentian restart saat aplikasi ditutup.
-- Memindahkan API key AI dari `localStorage` ke Electron `safeStorage` melalui IPC (`getAiKey`, `setAiKey`, `clearAiKey`).
-- Menambahkan migrasi satu kali dari `localStorage` lama ke penyimpanan terenkripsi jika tersedia.
-- Menambahkan validasi tipe, panjang, dan karakter baris baru pada API key yang diterima IPC.
-
-**Verifikasi:**
-- `npm run build` berhasil.
-- `npm run lint` berhasil tanpa error; masih terdapat dua warning React yang sudah ada terkait pemanggilan `Date` saat render dan dependency `geminiModel`.
-
-**File yang diubah:**
-- `electron/main.cjs`
-- `electron/preload.cjs`
-- `src/App.jsx`
-- `docs/CHANGES.md`
-
----
-
 ### [v0.5.3] — 2026-10-27
 
 #### 🎨 Normalisasi Tailwind CSS v4 Canonical Classes & Pembersihan Linter
@@ -561,6 +520,132 @@ Membersihkan seluruh 46 notifikasi di panel *Problems* IDE yang berasal dari rek
 - `src/App.jsx`
 - `package.json`
 - `docs/CHANGES.md`
+
+---
+
+### [v0.5.4] — 2026-10-31
+
+#### 🔐 Penguatan Keamanan IPC, Media Bridge, dan Penyimpanan API Key
+
+Meningkatkan keamanan komunikasi Electron serta ketahanan media bridge agar aplikasi lebih aman dan tetap pulih ketika proses PowerShell berhenti.
+
+**Perubahan utama:**
+- Menambahkan whitelist IPC untuk command media `playpause`, `next`, `prev`, dan format `seek:<angka>`.
+- Memvalidasi nilai `setIgnoreMouseEvents` dan hanya menerima opsi `forward` yang diizinkan.
+- Menambahkan restart otomatis media bridge setelah proses berhenti, dengan jeda dua detik dan penghentian restart saat aplikasi ditutup.
+- Memindahkan API key AI dari `localStorage` ke Electron `safeStorage` melalui IPC (`getAiKey`, `setAiKey`, `clearAiKey`).
+- Menambahkan migrasi satu kali dari `localStorage` lama ke penyimpanan terenkripsi jika tersedia.
+- Menambahkan validasi tipe, panjang, dan karakter baris baru pada API key yang diterima IPC.
+
+**Verifikasi:**
+- `npm run build` berhasil.
+- `npm run lint` berhasil tanpa error.
+
+**File yang diubah:**
+- `electron/main.cjs`
+- `electron/preload.cjs`
+- `src/App.jsx`
+- `docs/CHANGES.md`
+
+---
+
+### [v0.5.5] — 2026-10-31
+
+#### 🧹 Pembersihan Warning Linter React
+
+- Menginisialisasi state waktu dengan lazy initializer agar `Date` tidak dibuat ulang pada setiap render.
+- Menambahkan `geminiModel` ke dependency array sinkronisasi model Gemini agar perubahan model selalu diproses secara konsisten.
+- `npm run lint` kini selesai tanpa warning.
+- `npm run build` berhasil.
+
+**File yang diubah:**
+- `src/App.jsx`
+- `docs/CHANGES.md`
+
+---
+
+### [v0.6.0] — 2026-10-31
+
+#### 🧪 Test Framework (Vitest 88 Tests) & Ekstraksi Service Modular
+
+Menambahkan **Vitest** sebagai test framework dan mengekstrak logika bisnis utama dari `src/App.jsx` ke file service terpisah di `src/services/` dengan test coverage penuh.
+
+**Perubahan utama:**
+- Menambahkan Vitest (`vitest`, `@vitest/coverage-v8`, `jsdom`) dan konfigurasi `vitest.config.js`.
+- Menambahkan script test: `npm run test`, `npm run test:watch`, `npm run test:coverage`.
+- Ekstraksi service **Lyrics** (`src/services/lyrics.js`):
+  - `parseLrc`, `pickBestMatch`, `cleanTrackTitle`, `stripVideoSuffixes`, `cleanChannelArtist`, `isLikelyChannelName`, `parseYouTubeTitle`, `queryLrcLib`.
+  - 30 test case mencakup parser LRC, pencocokan hasil, sanitasi title/channel, parsing YouTube.
+- Ekstraksi service **Weather** (`src/services/weather.js`):
+  - `getWeatherInfo`, `getBrowserCoordinates`, `getIpGeolocation`, `getReverseGeocoding`, `fetchWeatherData`, `fetchFullWeather`.
+  - 19 test case mencakup konversi kode cuaca WMO, geolocation browser/IP, reverse geocoding, fetch cuaca.
+- Ekstraksi service **AI** (`src/services/ai.js`):
+  - `validateApiKey`, `detectAiProvider`, `mapAiHttpError`, `fetchAvailableGeminiModels`, `callAiAgent` + provider-specific callers.
+  - 21 test case mencakup validasi key, deteksi provider, mapping error HTTP, agent offline/invalid key.
+- Ekstraksi service **Media** (`src/services/media.js`):
+  - `validateMediaCommand`, `sanitizeMediaCommand`, `validateMouseOptions`, `validateApiKeyInput`, konstanta `ALLOWED_MEDIA_COMMANDS`, `SEEK_PATTERN`.
+  - 18 test case mencakup whitelist command, seek pattern, sanitasi, validasi opsi mouse/key.
+- Total **88 unit test** lulus 100%, `npm run lint` bersih, `npm run build` berhasil.
+
+**File yang diubah/ditambah:**
+- `package.json` (dependencies, scripts)
+- `vitest.config.js` (baru)
+- `src/services/lyrics.js` (baru)
+- `src/services/weather.js` (baru)
+- `src/services/ai.js` (baru)
+- `src/services/media.js` (baru)
+- `tests/lyrics.test.js` (baru)
+- `tests/weather.test.js` (baru)
+- `tests/ai.test.js` (baru)
+- `tests/media.test.js` (baru)
+- `docs/CHANGES.md`
+
+---
+
+### [v0.6.1] — 2026-11-01
+
+#### 🔒 Hardening Keamanan (CSP & Protokol External), Refactor Modular `App.jsx`, & Stabilisasi Bug Runtime
+
+Menyelesaikan penyatuan modularitas proyek Ryflow secara menyeluruh: menghubungkan `src/App.jsx` ke seluruh custom hooks dan services, memperbaiki celah CSP Google Fonts dan validasi protokol eksternal, memangkas monolitik `App.jsx`, serta menuntaskan semua bug runtime crash dan perbaikan tata letak visual.
+
+**1. Keamanan & Konfigurasi Sistem Electron (`main.cjs`):**
+- **CSP Google Fonts**: Menambahkan `https://fonts.googleapis.com` ke direktif `style-src` CSP agar stylesheet font kustom (Plus Jakarta Sans, Fraunces, DM Mono) dapat termuat aman di mode produksi.
+- **Validasi Protokol External**: Membatasi `shell.openExternal` hanya untuk protokol `http:` dan `https:` untuk mencegah eksekusi skema berbahaya dari luar.
+- **Navigation Policy**: Memblokir event `will-navigate` selain URL berbasis `file://`.
+- **Version Bump**: Menyinkronkan versi di `package.json` dari `0.5.3` ke `0.6.1`.
+
+**2. Refactor Komponen & Custom Hooks (`src/App.jsx`):**
+- **Penyusutan Monolit**: Menghapus seluruh logika inline (~1.200 baris duplikasi) dan mendelegasikan state management ke 5 custom hooks:
+  - `useClock()`: Mengelola timer real-time, format jam digital, dan penanggalan header.
+  - `useMedia()`: Mengelola koneksi GSMTC Windows, kontrol media, lirik tersinkronisasi, dan cover art HD.
+  - `useWeather()`: Mengelola deteksi koordinat browser/IP, reverse geocoding kota, WMO code, dan kalender 7 hari (dengan `useMemo`).
+  - `useTodos()`: Mengelola to-do agenda harian dengan persistensi `localStorage`.
+  - `useAiAgent()`: Mengelola multi-provider chat AI, deteksi model Gemini dinamis, dan enkripsi key di `safeStorage`.
+- Ukuran `src/App.jsx` terpangkas dari **1.764 baris** menjadi **677 baris** orkestrator murni.
+
+**3. Stabilisasi Bug Runtime & Restorasi Visual Layout:**
+- **Fix Crash `displayCover`**: Menyediakan dan mengekspor `displayCover` dari `useMedia` sehingga artwork vinyl berputar tidak memicu *ReferenceError*.
+- **Fix Crash `activeProvider`**: Menyediakan dan mengekspor `activeProvider` dari `useAiAgent` sehingga badge provider AI dapat diklik dan berganti model dengan normal.
+- **Restorasi Konteks Real-Time AI**: Menyuntikkan konteks sistem (lagu yang sedang diputar, suhu cuaca, jam WIB, dan agenda belum selesai) ke form chat `handleAiSubmit`.
+- **Restorasi Header & Notch Idle (`Header.jsx`)**: Mengembalikan siluet minimalis idle notch (cover vinyl + jam digital + waveform monokrom) yang proporsional pada lebar 172px tanpa overflow teks.
+- **Restorasi Tab Today**: Menghapus duplikasi header bar kedua di dalam tab Today dan mengembalikan grid 2 kolom proporsional beserta ikon dinamis Lucide `WeatherIcon`.
+- **Pembersihan Dead Code**: Menghapus file template bawaan `src/App.css` dan aset `hero.png`, `react.svg`, `vite.svg`.
+
+**Verifikasi Quality Gate & Build Executable:**
+- `npm run test`: **88/88 test lulus 100%** (4 test files).
+- `npm run lint`: **0 warning, 0 error** (oxlint clean pada 20 file).
+- `npm run build`: **Vite build sukses** (bundle `dist/` terkompilasi dalam 300ms).
+- `npm run electron:build`: **Executable installer berhasil dibuat** (`release/Ryflow Setup 0.6.1.exe` dan `release/win-unpacked/Ryflow.exe`).
+
+**File yang diubah/ditambah:**
+- `src/App.jsx` (refactor & stabilisasi)
+- `src/components/Header.jsx` (restorasi idle & expanded bar)
+- `src/hooks/useMedia.js` (ekspor `displayCover`)
+- `src/hooks/useWeather.js` (integrasi `WeatherIcon`)
+- `src/hooks/useAiAgent.js` (ekspor `activeProvider` & integrasi context)
+- `electron/main.cjs` (CSP Google Fonts & validasi URL external)
+- `package.json` (version 0.6.1)
+- `docs/CHANGES.md` (kronologi rapi & dokumentasi lengkap)
 
 ---
 

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, Tray, Menu, safeStorage } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, Tray, Menu, safeStorage, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -111,6 +111,42 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
+
+    // CSP & Navigation Hardening
+    const csp = [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: https:",
+        "font-src 'self' https://fonts.gstatic.com",
+        "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
+    ].join('; ');
+
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': [csp],
+            },
+        });
+    });
+
+    mainWindow.webContents.on('will-navigate', (e, url) => {
+        const currentUrl = mainWindow.webContents.getURL();
+        if (url !== currentUrl && !url.startsWith('file://')) {
+            e.preventDefault();
+        }
+    });
+
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+                shell.openExternal(url);
+            }
+        } catch {}
+        return { action: 'deny' };
+    });
 }
 
 function createTray() {

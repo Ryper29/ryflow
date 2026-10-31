@@ -1,6 +1,8 @@
 # Personal notes & prompts
 docs/*
 !docs/CHANGES.md
+REFACTOR-SUMMARY.md
+*PROMPT*.md
 
 # Logs
 logs
