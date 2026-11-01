@@ -1,88 +1,168 @@
 # 🏝️ Ryflow
 
-> **Sleek Dynamic Island & Live Synced Lyrics for Windows**  
-> *Kontrol musik dan lirik langsung di atas layar tanpa ribet berpindah jendela.*
+> **Smart productivity hub berbentuk notch untuk Windows.**
+> *Musik & lirik tersinkron, cuaca & agenda harian, dan asisten AI — semuanya di tepi atas layar, tanpa berpindah jendela.*
+
+**Status:** versi 0.x, dipakai pribadi dan masih terus berkembang.
 
 ---
 
 ## 💡 Tentang Ryflow
 
-**Ryflow** adalah aplikasi desktop bergaya *Dynamic Island* (notch) yang selalu mengapung di bagian atas layar Windows. Ryflow terhubung langsung dengan sistem media Windows (GSMTC) untuk mendeteksi lagu yang sedang diputar di Spotify, Apple Music, YouTube Music, maupun browser, lengkap dengan lirik berjalan (*synced lyrics*) yang diambil secara otomatis.
+**Ryflow** adalah aplikasi desktop bergaya *Dynamic Island* / notch MacBook yang selalu mengapung di bagian atas layar Windows. Ia lahir dari satu keluhan sederhana: memutar lagu berikutnya atau melihat lirik terasa ribet karena harus berpindah jendela. Dari situ Ryflow berkembang menjadi hub kecil dengan tiga tab:
+
+| Tab | Fungsi |
+|---|---|
+| 🎵 **Music** | Kontrol pemutar media Windows + lirik tersinkron |
+| 🗓️ **Today** | Cuaca, kalender mingguan, dan agenda/to-do harian |
+| 🤖 **AI** | Asisten AI yang mengenali konteks (lagu, cuaca, agenda) |
 
 ---
 
 ## ✨ Fitur Utama
 
-- 🏝️ **Floating Dynamic Island:**
-  - Notch minimalis di bagian atas layar dengan animasi spring mulus (*Framer Motion*).
-  - Tembus klik (*click-through*) di area transparan saat idle agar tidak mengganggu aktivitas kerja.
-  - Mengembang (*expanded*) saat kursor diarahkan (*hover*).
+### 🏝️ Notch yang Selalu Ada, Tidak Mengganggu
+- Siluet notch ala MacBook dengan animasi spring (*Framer Motion*).
+- **Idle:** pill kecil berisi cover vinyl, jam digital, dan indikator gelombang. Seluruh area pill *tembus klik* sehingga tab browser di belakangnya tetap bisa diklik.
+- **Membuka:** dorong kursor mentok ke **tepi paling atas layar** (±6px). Notch terbuka instan tanpa delay.
+- **Pin:** sematkan notch agar tetap terbuka walau kursor pergi.
+- **Auto-hold:** notch tidak menutup selama kamu sedang mengetik di kolom input.
 
-- 🎵 **Integrasi Media Windows Real-Time:**
-  - Membaca judul, nama artis, cover art, dan durasi dari sistem Windows GSMTC via background bridge PowerShell.
-  - Progress bar presisi dengan interpolasi lokal yang mulus dan fitur *click-to-seek*.
-  - Kontrol langsung: Play/Pause, Next Track, Previous Track.
+### 🎵 Tab Music
+- Membaca judul, artis, cover, posisi, dan durasi dari **Windows GSMTC** (Spotify, Apple Music, YouTube Music, browser) lewat jembatan PowerShell di background.
+- Kontrol Play/Pause, Next, Previous, dan *click-to-seek* pada progress bar.
+- Cover album mini berbentuk **piringan vinyl** yang berputar saat musik diputar dan berhenti saat dijeda.
+- **Lirik tersinkron otomatis** dari [LRCLIB](https://lrclib.net/) (fallback ke lirik teks biasa), tampil 3 baris: sebelumnya (redup), aktif (terang), berikutnya.
+- Parser judul YouTube (`Artis - Judul`, pembersihan `(Official Video)`, VEVO/Topic, dll.) agar lirik tetap ketemu saat memutar dari browser.
+- Fallback cover art resolusi tinggi dari iTunes Search API.
 
-- 💿 **Vinyl Effect (Idle Pill):**
-  - Cover album mini berbentuk piringan vinyl berputar lambat saat musik diputar, dan berhenti saat musik dijeda.
+### 🗓️ Tab Today
+- **Cuaca real-time** dari [Open-Meteo](https://open-meteo.com/) (suhu, kelembapan, kondisi dalam bahasa Indonesia), diperbarui tiap 15 menit.
+- **Lokasi** dari Geolocation browser, dengan fallback ke geolokasi IP, lalu ke Bandar Lampung. Nama kota dari reverse geocoding OpenStreetMap Nominatim.
+- **Kalender mingguan** 7 hari dengan hari ini disorot.
+- **Agenda / to-do cepat:** tambah, centang, hapus, dengan penghitung progres. Disimpan di `localStorage`.
 
-- 📜 **Auto Synced Lyrics & HD Artwork:**
-  - Lirik otomatis diambil dari `lrclib.net` (synced LRC dengan fallback plain text).
-  - Tampilan lirik 3 baris: baris sebelumnya (redup), baris aktif (fokus terang), dan baris berikutnya.
-  - Fallback cover art resolusi tinggi dari iTunes Search API.
+### 🤖 Tab AI
+- Asisten AI **bring-your-own-key**. Provider terdeteksi otomatis dari prefix key: **Google Gemini**, **Grok (xAI) / Groq**, **OpenAI**, dan **Anthropic**.
+- Model Gemini ditemukan dinamis dari akun kamu, dan bisa diganti dengan klik badge model.
+- Mengenali konteks: lagu yang sedang diputar, cuaca, jam, dan agenda yang belum selesai.
+- Tombol cepat: **🎵 Makna lagu ini** dan **⚡ Fokus hari ini**, plus salin jawaban dan pesan error yang ramah.
+- API key disimpan terenkripsi lewat Electron `safeStorage` (Windows DPAPI), bukan `localStorage`.
 
-- 🚀 **Standalone & Auto-Start:**
-  - Bebas localhost — berjalan sebagai aplikasi desktop `.exe` mandiri.
-  - Otomatis berjalan saat laptop dinyalakan (*open at login*).
-  - *Single Instance Lock* — mencegah aplikasi terbuka dobel.
-  - *System Tray Menu* di pojok kanan bawah Windows untuk reload atau keluar kapan saja.
+### 🚀 Aplikasi Mandiri
+- Berjalan sebagai `.exe` tanpa localhost.
+- Otomatis berjalan saat Windows menyala (hanya pada build terpaket).
+- *Single instance lock* dan menu *system tray* (fokus, reload, keluar).
+
+---
+
+## 🔒 Privasi & Layanan Eksternal
+
+Ryflow berjalan lokal, tetapi beberapa fitur memanggil layanan pihak ketiga:
+
+| Layanan | Untuk apa | Data yang dikirim |
+|---|---|---|
+| LRCLIB | Lirik | Judul & artis lagu yang sedang diputar |
+| iTunes Search API | Cover art cadangan | Judul & artis lagu |
+| Open-Meteo | Cuaca | Koordinat lokasi |
+| geojs.io | Geolokasi IP (fallback) | Alamat IP |
+| Nominatim (OpenStreetMap) | Nama kota | Koordinat lokasi |
+| Provider AI pilihanmu | Tab AI | Pertanyaan **beserta konteks**: lagu, cuaca, jam, dan teks agenda yang belum selesai |
+
+Pertanyaan ke AI selalu menyertakan konteks di atas. Hindari menulis informasi sensitif di agenda jika memakai fitur AI.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Desktop Framework:** [Electron 44](https://www.electronjs.org/)
+- **Desktop:** [Electron 44](https://www.electronjs.org/)
 - **Frontend:** [React 19](https://react.dev/), [Vite](https://vite.dev/)
 - **Styling & Animasi:** [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/)
-- **Icons:** [Lucide React](https://lucide.dev/)
-- **Typography:** Plus Jakarta Sans (UI), Fraunces (Lyrics), DM Mono (Time & Clock)
-- **Media Engine:** Windows Runtime (WinRT) GSMTC via PowerShell Child Process
-- **Lyrics Provider:** [LRCLIB API](https://lrclib.net/) & iTunes Search API
-- **Packager:** [electron-builder](https://www.electron.build/)
+- **Ikon:** [Lucide React](https://lucide.dev/)
+- **Tipografi:** Plus Jakarta Sans (UI & lirik), DM Mono (jam & timer)
+- **Media engine:** Windows Runtime (WinRT) GSMTC via PowerShell child process
+- **Sumber data:** LRCLIB, iTunes Search API, Open-Meteo, Nominatim, geojs.io
+- **Kualitas:** [Vitest](https://vitest.dev/) (unit test), oxlint
+- **Packager:** [electron-builder](https://www.electron.build/) (installer NSIS)
 
 ---
 
-## 📦 Menjalankan & Membangun Project
+## 🗂️ Struktur Proyek
+
+```
+src/
+├── components/
+│   └── Header.jsx          # Header idle & expanded
+├── hooks/
+│   ├── useClock.js
+│   ├── useMedia.js
+│   ├── useWeather.js
+│   ├── useTodos.js
+│   └── useAiAgent.js
+├── services/
+│   ├── lyrics.js
+│   ├── weather.js
+│   ├── ai.js
+│   └── media.js
+├── App.jsx                 # Orkestrator: notch, tab, animasi
+└── main.jsx
+electron/
+├── main.cjs                # Window, CSP, IPC, safeStorage, media bridge
+├── preload.cjs
+├── media-bridge.ps1        # Jembatan GSMTC (PowerShell)
+└── tray.png
+tests/                      # Vitest untuk services
+```
+
+---
+
+## 📦 Menjalankan & Membangun
 
 ### Prasyarat
-- **Node.js** (v18+ disarankan)
-- **Windows 10/11** (mendukung Windows GSMTC)
+- **Node.js** v18+ disarankan
+- **Windows 10/11** (butuh Windows GSMTC)
 
-### 1. Mode Development
-Menjalankan Vite dev server + Electron secara bersamaan:
+### Development
+Menjalankan Vite dev server dan Electron bersamaan:
 ```bash
 npm install
 npm run electron:dev
 ```
 
-### 2. Build Installer Desktop (.exe)
-Mengemas seluruh aplikasi menjadi installer NSIS yang siap di-install di Windows:
+### Test & Kualitas
+```bash
+npm run test       # Vitest
+npm run lint       # oxlint
+npm run build      # build Vite
+```
+
+### Build Installer (.exe)
 ```bash
 npm run electron:build
 ```
-Hasil installer akan tersimpan di dalam folder `release/`:
+Hasil di folder `release/`:
 - **Installer:** `release/Ryflow Setup <versi>.exe`
-- **Portable Unpacked:** `release/win-unpacked/Ryflow.exe`
+- **Portable:** `release/win-unpacked/Ryflow.exe`
 
 ---
 
-## 📋 Catatan Rilis & Changelog
+## ⚠️ Batasan yang Diketahui
 
-Dokumentasi perubahan versi tercatat secara rinci di [`docs/CHANGES.md`](./docs/CHANGES.md).
+- Ditempatkan di **monitor utama** saja.
+- Jembatan media memakai **PowerShell polling**, bukan event native, jadi ada jeda kecil dan konsumsi sumber daya yang masih bisa dioptimalkan.
+- Akurasi sinkron lirik bergantung pada data LRCLIB dan presisi posisi dari GSMTC; belum ada penyesuaian offset manual.
+- Pemutar yang sedang berstatus *Playing* dipilih otomatis, sehingga video di tab browser bisa menimpa Spotify.
+- Installer belum dirancang untuk distribusi publik.
+
+---
+
+## 📋 Catatan Rilis
+
+Riwayat perubahan lengkap ada di [`docs/CHANGES.md`](./docs/CHANGES.md).
 
 ---
 
 ## 👤 Pembuat
 
-Dibuat dengan ❤️ oleh **Ryper**  
-*Musik yang mengalir (flow) tanpa hambatan.*
+Dibuat dengan ❤️ oleh **Ryper**
+*Satu notch kecil, semua yang kamu butuhkan, tanpa berpindah jendela.*
