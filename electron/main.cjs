@@ -79,16 +79,16 @@ function startMediaBridge() {
 
 function createWindow() {
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth } = primaryDisplay.workAreaSize;
+    const { bounds } = primaryDisplay;
 
-    const winWidth = 650;
+    const winWidth = 650;   // JANGAN dikecilkan: overshoot spring notch + telinga butuh ±640px
     const winHeight = 260;
 
     mainWindow = new BrowserWindow({
         width: winWidth,
         height: winHeight,
-        x: Math.round((screenWidth - winWidth) / 2),
-        y: 0,
+        x: Math.round(bounds.x + (bounds.width - winWidth) / 2),
+        y: bounds.y,
         frame: false,
         transparent: true,
         alwaysOnTop: true,
@@ -111,6 +111,9 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
+
+// DevTools permanen untuk verifikasi CSP (hanya aktif dengan env var)
+    if (process.env.RYFLOW_DEVTOOLS) mainWindow.webContents.openDevTools({ mode: 'detach' });
 
     // CSP & Navigation Hardening
     const csp = [

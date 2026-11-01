@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -55,6 +55,8 @@ export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isPointerInside, setIsPointerInside] = useState(false);
+  const closeTimer = useRef(null);
   const [activeTab, setActiveTab] = useState('music');
   const [tabDirection, setTabDirection] = useState(0);
 
@@ -104,34 +106,31 @@ export default function App() {
     handleAiSubmit,
   } = useAiAgent({ media, weather, weatherLabel, todos });
 
-  const isExpanded = isHovered || isPinned || isInputFocused;
+  // Interaktif hanya jika notch terbuka DAN pointer di atas notch
+  useEffect(() => {
+    const interactive = isExpanded && isPointerInside;
+    window.electronAPI?.setIgnoreMouseEvents(!interactive, { forward: true });
+  }, [isExpanded, isPointerInside]);
 
-  const handleMouseMove = (e) => {
-    if (isExpanded) return;
-    if (e.clientY <= 6) {
-      setIsHovered(true);
-      if (window.electronAPI) {
-        window.electronAPI.setIgnoreMouseEvents(false);
-      }
-    }
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  const handleMouseEnter = () => {
+    clearTimeout(closeTimer.current);
+    setIsPointerInside(true);
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!isPinned && !isInputFocused) {
-      if (window.electronAPI) {
-        window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-      }
-    }
+    setIsPointerInside(false);
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setIsHovered(false), 250);
   };
 
-  const togglePin = () => {
-    const nextPin = !isPinned;
-    setIsPinned(nextPin);
-    if (!nextPin && !isHovered && window.electronAPI) {
-      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-    }
+  const handleMouseMove = (e) => {
+    if (isExpanded) return;
+    if (e.clientY <= 6) setIsHovered(true);
   };
+
+  const togglePin = useCallback(() => setIsPinned((p) => !p), []);
 
   const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
     return (media.position + 0.25) >= curr.time ? idx : acc;
@@ -152,6 +151,7 @@ export default function App() {
     <div className="w-screen h-screen flex justify-center items-start pt-0 pointer-events-none">
       {/* Container Siluet MacBook Notch dengan Liquid Ears */}
       <motion.div
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         initial={false}
