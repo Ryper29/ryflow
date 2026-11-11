@@ -109,17 +109,20 @@ export default function App() {
   // Interaktif hanya jika notch terbuka DAN pointer di atas notch
   useEffect(() => {
     const interactive = isExpanded && isPointerInside;
+    console.log('[T1-IPC] setIgnoreMouseEvents', JSON.stringify({ ignore: !interactive, forward: true, isExpanded, isPointerInside }));
     window.electronAPI?.setIgnoreMouseEvents(!interactive, { forward: true });
   }, [isExpanded, isPointerInside]);
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   const handleMouseEnter = () => {
+    console.log('[T1-EVENT] mouseenter');
     clearTimeout(closeTimer.current);
     setIsPointerInside(true);
   };
 
   const handleMouseLeave = () => {
+    console.log('[T1-EVENT] mouseleave');
     setIsPointerInside(false);
     clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setIsHovered(false), 250);
