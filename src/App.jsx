@@ -55,6 +55,7 @@ export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const isExpanded = isHovered || isPinned || isInputFocused;
   const [isPointerInside, setIsPointerInside] = useState(false);
   const closeTimer = useRef(null);
   const [activeTab, setActiveTab] = useState('music');
@@ -108,10 +109,10 @@ export default function App() {
 
   // Interaktif hanya jika notch terbuka DAN pointer di atas notch
   useEffect(() => {
-    const interactive = isExpanded && isPointerInside;
-    console.log('[T1-IPC] setIgnoreMouseEvents', JSON.stringify({ ignore: !interactive, forward: true, isExpanded, isPointerInside }));
+    const interactive = (isHovered || isPinned || isInputFocused) && isPointerInside;
+    console.log('[T1-IPC] setIgnoreMouseEvents', JSON.stringify({ ignore: !interactive, forward: true, isPointerInside }));
     window.electronAPI?.setIgnoreMouseEvents(!interactive, { forward: true });
-  }, [isExpanded, isPointerInside]);
+  }, [isHovered, isPinned, isInputFocused, isPointerInside]);
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
