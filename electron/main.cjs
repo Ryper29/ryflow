@@ -3,10 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const readline = require('readline');
-const diagnosticsLog = path.join(app.getPath('userData'), 'phase0-evidence.log');
-const writeDiagnostic = (entry) => {
-    try { fs.appendFileSync(diagnosticsLog, `${new Date().toISOString()} ${entry}\n`); } catch { }
-};
 for (const stream of [process.stdout, process.stderr]) {
     stream.on('error', (err) => { if (err.code !== 'EPIPE') throw err; });
 }
@@ -160,23 +156,6 @@ function createWindow() {
         return { action: 'deny' };
     });
 
-    mainWindow.webContents.on('console-message', (_event, details) => {
-        writeDiagnostic(`RENDERER_CONSOLE ${JSON.stringify(details)}`);
-    });
-    mainWindow.webContents.on('did-finish-load', () => {
-        writeDiagnostic(`WINDOW visible=${mainWindow.isVisible()} bounds=${JSON.stringify(mainWindow.getBounds())} url=${mainWindow.webContents.getURL()}`);
-        mainWindow.webContents.executeJavaScript(`
-            fetch('https://lrclib.net/api/search?track_name=test')
-                .then((r) => console.log('[CSP-CONTROL] OK-DIIZINKAN', r.status))
-                .catch((e) => console.log('[CSP-CONTROL] GAGAL-DIIZINKAN', e.message));
-            fetch('https://api.github.com/zen')
-                .then((r) => console.log('[CSP-TEST] CSP-TIDAK-BERLAKU', r.status))
-                .catch((e) => console.log('[CSP-TEST] GAGAL', e.message));
-        `).catch((err) => writeDiagnostic(`EXECUTE_JS_ERROR ${err.message}`));
-    });
-    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-        writeDiagnostic(`LOAD_ERROR ${JSON.stringify({ errorCode, errorDescription, validatedURL })}`);
-    });
 }
 
 function createTray() {
