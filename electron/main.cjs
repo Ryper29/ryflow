@@ -125,11 +125,13 @@ function createWindow() {
     // CSP & Navigation Hardening
     const csp = [
         "default-src 'self'",
-        "script-src 'self'",
+        app.isPackaged ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: https:",
         "font-src 'self' https://fonts.gstatic.com",
-        "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
+        app.isPackaged
+            ? "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com"
+            : "connect-src 'self' http://localhost:5173 ws://localhost:5173 https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
     ].join('; ');
 
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
