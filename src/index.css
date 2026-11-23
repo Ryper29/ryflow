@@ -16,3 +16,15 @@ body,
   overflow: hidden;
   user-select: none;
 }
+
+@keyframes ryflow-eq {
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ryflow-eq-bar {
+    animation: none !important;
+    transform: scaleY(0.5) !important;
+  }
+}

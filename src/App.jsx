@@ -175,7 +175,7 @@ export default function App() {
           stiffness: 380,
           damping: 24,
         }}
-        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/8 shadow-[0_12px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl origin-top"
+        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/8 shadow-[0_12px_36px_rgba(0,0,0,0.85)] origin-top"
       >
         {/* Lekukan Bahu Kiri Atas (MacBook Left Ear) */}
         <svg

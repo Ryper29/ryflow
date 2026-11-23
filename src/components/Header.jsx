@@ -65,18 +65,15 @@ function HeaderBase({
 
         {/* Minimalist Monochrome Waveform */}
         <div className="flex items-center gap-0.5 h-3">
-          {[0.45, 0.95, 0.55, 0.85, 0.4].map((_, i) => (
-            <motion.span
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span
               key={i}
-              animate={{
-                height: isPlaying ? ["25%", "95%", "35%"] : "20%",
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 0.65 + i * 0.12,
-                ease: "easeInOut",
-              }}
-              className="w-0.5 bg-white/75 rounded-full"
+              className="ryflow-eq-bar w-0.5 h-full origin-bottom bg-white/75 rounded-full"
+              style={
+                isPlaying
+                  ? { animation: `ryflow-eq ${0.65 + i * 0.12}s ease-in-out ${-i * 0.17}s infinite` }
+                  : { transform: 'scaleY(0.2)' }
+              }
             />
           ))}
         </div>
