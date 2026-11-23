@@ -36,6 +36,10 @@ $cmdFile = if ($cmdFilePath) { $cmdFilePath } else { Join-Path ([System.IO.Path]
 $lastTrackKey = ""
 $cachedThumbnail = $null
 $tick = 0
+$thumbPending = $false
+$thumbTries = 0
+$thumbDirty = $false
+$emitCount = 0
 
 while ($true) {
     if ($null -eq $manager) {
@@ -118,10 +122,16 @@ while ($true) {
                 }
             }
 
-            # Ekstrak Cover Art saat lagu berganti
+            # Ekstrak Cover Art saat lagu berganti (retry maks 5 tick, kirim saat berubah + heartbeat tiap 40 emisi)
             $currentKey = "$title|$artist"
             if ($currentKey -ne $lastTrackKey) {
+                $lastTrackKey = $currentKey
                 $cachedThumbnail = $null
+                $thumbPending = $true
+                $thumbTries = 0
+            }
+            if ($thumbPending) {
+                $thumbTries++
                 if ($props -and $null -ne $props.Thumbnail) {
                     try {
                         $streamRef = Await ($props.Thumbnail.OpenReadAsync()) $tStream
@@ -132,18 +142,20 @@ while ($true) {
                             $bytes = $memStream.ToArray()
                             if ($bytes.Length -gt 0) {
                                 $cachedThumbnail = "data:image/jpeg;base64," + [Convert]::ToBase64String($bytes)
+                                $thumbPending = $false
+                                $thumbDirty = $true
                             }
                             $memStream.Dispose()
                             $netStream.Dispose()
                             $streamRef.Dispose()
                         }
                     }
-                    catch {
-                        $cachedThumbnail = $null
-                    }
+                    catch {}
                 }
-                $lastTrackKey = $currentKey
+                if ($thumbTries -ge 5) { $thumbPending = $false }
             }
+            $emitCount++
+            $sendThumb = $thumbDirty -or ($emitCount % 40 -eq 0)
 
             $payload = @{
                 hasMedia  = $true
@@ -152,11 +164,12 @@ while ($true) {
                 isPlaying = [bool]$isPlaying
                 position  = [Math]::Round([Math]::Max(0.0, [double]$pos), 2)
                 duration  = [int][Math]::Floor([Math]::Max(1, $dur))
-                thumbnail = $cachedThumbnail
+                thumbnail = $(if ($sendThumb) { $cachedThumbnail } else { $null })
             } | ConvertTo-Json -Compress
 
             [Console]::Out.WriteLine($payload)
             [Console]::Out.Flush()
+            if ($sendThumb) { $thumbDirty = $false }
         }
         else {
             $payload = @{ hasMedia = $false } | ConvertTo-Json -Compress
