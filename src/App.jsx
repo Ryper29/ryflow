@@ -635,48 +635,50 @@ export default function App() {
                             </div>
 
                             {/* Area Jawaban AI */}
-                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col justify-center">
-                              {aiLoading ? (
-                                <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
-                                  <Loader2 size={12} className="animate-spin text-white/70" />
-                                  <span>Sedang berpikir...</span>
-                                </div>
-                              ) : aiError ? (
-                                <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
-                                  <div className="flex items-center gap-1.5 overflow-hidden">
-                                    <AlertCircle size={12} className="text-rose-400 shrink-0" />
-                                    <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
-                                      {aiError}
-                                    </p>
+                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col">
+                              <div className="my-auto">
+                                {aiLoading ? (
+                                  <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
+                                    <Loader2 size={12} className="animate-spin text-white/70" />
+                                    <span>Sedang berpikir...</span>
                                   </div>
-                                  {aiError.includes('API Key') && (
-                                    <button
-                                      onClick={handleRemoveApiKey}
-                                      className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
-                                    >
-                                      Ganti Key
-                                    </button>
-                                  )}
-                                </div>
-                              ) : aiResponse ? (
-                                <div className="flex flex-col gap-0.5">
-                                  {aiLastQuestion && (
-                                    <p className="text-[10px] font-sans text-white/35 truncate">
-                                      Q: {aiLastQuestion}
+                                ) : aiError ? (
+                                  <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
+                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                      <AlertCircle size={12} className="text-rose-400 shrink-0" />
+                                      <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
+                                        {aiError}
+                                      </p>
+                                    </div>
+                                    {aiError.includes('API Key') && (
+                                      <button
+                                        onClick={handleRemoveApiKey}
+                                        className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
+                                      >
+                                        Ganti Key
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : aiResponse ? (
+                                  <div className="flex flex-col gap-0.5">
+                                    {aiLastQuestion && (
+                                      <p className="text-[10px] font-sans text-white/35 truncate">
+                                        Q: {aiLastQuestion}
+                                      </p>
+                                    )}
+                                    <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
+                                      {aiResponse}
                                     </p>
-                                  )}
-                                  <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
-                                    {aiResponse}
+                                    {aiResponseTruncated && (
+                                      <p className="text-[9px] font-sans text-amber-200/65">(jawaban terpotong)</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-[11px] font-sans text-white/30">
+                                    Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
                                   </p>
-                                  {aiResponseTruncated && (
-                                    <p className="text-[9px] font-sans text-amber-200/65">(jawaban terpotong)</p>
-                                  )}
-                                </div>
-                              ) : (
-                                <p className="text-[11px] font-sans text-white/30">
-                                  Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
-                                </p>
-                              )}
+                                )}
+                              </div>
                             </div>
 
                             {/* Baris Input Prompt */}
