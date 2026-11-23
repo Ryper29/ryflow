@@ -70,7 +70,7 @@ export default function App() {
     setActiveTab(nextTab);
   };
 
-  const { now, timeString, dateHeaderString } = useClock();
+  const { dayKey, timeString, dateHeaderString } = useClock();
   const {
     media,
     lyrics,
@@ -79,7 +79,7 @@ export default function App() {
     triggerControl,
     handleSeek,
   } = useMedia();
-  const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(now);
+  const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(dayKey);
   const { todos, newTodo, setNewTodo, handleAddTodo, toggleTodo, deleteTodo, completedTodos } = useTodos();
   const {
     aiApiKey,
