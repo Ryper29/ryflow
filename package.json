@@ -16,6 +16,8 @@
     "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@fontsource/dm-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "framer-motion": "^14.3.0",
     "lucide-react": "^1.59.0",

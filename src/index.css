@@ -2,9 +2,7 @@
 
 @theme {
   /* UI: nama app, label, judul lagu, artis */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  /* Lirik aktif & sekitar */
-  --font-lyric: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   /* Jam digital & timer progress */
   --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
