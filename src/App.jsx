@@ -24,6 +24,7 @@ import { useTodos } from './hooks/useTodos';
 import { useAiAgent } from './hooks/useAiAgent';
 
 const TAB_ORDER = ['music', 'today', 'ai'];
+const CLOSE_DELAY_MS = 250;
 
 const tabContentVariants = {
   enter: (direction) => ({
@@ -128,7 +129,7 @@ export default function App() {
     console.log('[T1-EVENT] mouseleave');
     setIsPointerInside(false);
     clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setIsHovered(false), 250);
+    closeTimer.current = setTimeout(() => setIsHovered(false), CLOSE_DELAY_MS);
   };
 
   const handleMouseMove = (e) => {
