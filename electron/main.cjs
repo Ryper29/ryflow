@@ -33,6 +33,20 @@ function getScriptPath() {
     return path.join(__dirname, 'media-bridge.ps1');
 }
 
+let restartDelay = 2000;
+let bridgeStartedAt = 0;
+
+function scheduleBridgeRestart(reason) {
+    if (isQuitting || mediaRestartTimer) return;
+    if (Date.now() - bridgeStartedAt > 30000) restartDelay = 2000; // sempat sehat -> mulai dari awal
+    console.error(`[MediaBridge] restart dalam ${restartDelay} ms (${reason})`);
+    mediaRestartTimer = setTimeout(() => {
+        mediaRestartTimer = null;
+        startMediaBridge();
+    }, restartDelay);
+    restartDelay = Math.min(restartDelay * 2, 16000);
+}
+
 function startMediaBridge() {
     const scriptPath = getScriptPath();
 
@@ -40,6 +54,7 @@ function startMediaBridge() {
         try { fs.unlinkSync(cmdFilePath); } catch { }
     }
 
+    bridgeStartedAt = Date.now();
     mediaProcess = spawn('powershell.exe', [
         '-NoProfile',
         '-NonInteractive',
@@ -47,7 +62,7 @@ function startMediaBridge() {
         '-ExecutionPolicy', 'Bypass',
         '-File', scriptPath,
         '-cmdFilePath', cmdFilePath
-    ]);
+    ], { windowsHide: true });
 
     const rl = readline.createInterface({ input: mediaProcess.stdout });
 
@@ -68,15 +83,15 @@ function startMediaBridge() {
         console.error('[MediaBridge PS Error]:', data.toString());
     });
 
+    mediaProcess.on('error', (err) => {
+        console.error('[MediaBridge Spawn Error]:', err.message);
+        mediaProcess = null;
+        scheduleBridgeRestart('spawn error');
+    });
+
     mediaProcess.on('exit', (_code, signal) => {
         mediaProcess = null;
-        if (!isQuitting && !mediaRestartTimer) {
-            console.error(`[MediaBridge Exit]: ${signal || 'process exited'}`);
-            mediaRestartTimer = setTimeout(() => {
-                mediaRestartTimer = null;
-                startMediaBridge();
-            }, 2000);
-        }
+        scheduleBridgeRestart(signal || 'exit');
     });
 }
 

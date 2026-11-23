@@ -38,6 +38,16 @@ $cachedThumbnail = $null
 $tick = 0
 
 while ($true) {
+    if ($null -eq $manager) {
+        $manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) $tManager
+        if ($null -eq $manager) {
+            [Console]::Out.WriteLine('{"hasMedia":false,"bridge":"waiting"}')
+            [Console]::Out.Flush()
+            Start-Sleep -Milliseconds 1000
+            continue
+        }
+    }
+
     # Cari sesi yang sedang berstatus 'Playing' terlebih dahulu (misal Spotify saat Chrome juga buka)
     $session = $null
     $sessions = $manager.GetSessions()
