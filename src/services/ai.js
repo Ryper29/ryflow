@@ -6,6 +6,13 @@ export const DEFAULT_GEMINI_MODELS = [
   'gemini-2.5-flash',
 ];
 
+export function getGeminiThinkingConfig(modelName) {
+  if (/^gemini-3/i.test(modelName)) return { thinkingLevel: 'low' };
+  if (/^gemini-2\.5-flash/i.test(modelName)) return { thinkingBudget: 0 };
+  if (/^gemini-2\.5-pro/i.test(modelName)) return { thinkingBudget: 128 };
+  return undefined;
+}
+
 let cachedDiscoveredModels = null;
 let cachedKeyForModels = '';
 
@@ -113,20 +120,39 @@ async function callGemini({ cleanKey, prompt, systemPrompt, geminiModel, discove
 
   for (const modelName of modelsToTry) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+    const thinkingConfig = getGeminiThinkingConfig(modelName);
+    const generationConfig = { temperature: 0.6, maxOutputTokens: 1024 };
+    if (thinkingConfig) generationConfig.thinkingConfig = thinkingConfig;
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.6, maxOutputTokens: 350 },
+        generationConfig,
       }),
     });
     const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tidak ada respons.';
-      return { text: replyText, usedModel: modelName, availableModels: discovered };
+      const candidate = data.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      const replyText = candidate?.content?.parts
+        ?.filter((part) => !part.thought)
+        .map((part) => part.text || '')
+        .join('') || '';
+      if (finishReason === 'MAX_TOKENS' && !replyText) {
+        throw new Error('Gemini kehabisan batas token sebelum menghasilkan jawaban. Coba lagi.');
+      }
+      return {
+        text: replyText || 'Tidak ada respons.',
+        truncated: finishReason === 'MAX_TOKENS',
+        finishReason,
+        usageMetadata: data.usageMetadata,
+        usedModel: modelName,
+        availableModels: discovered,
+      };
     }
 
     const errMsg = data.error?.message || '';

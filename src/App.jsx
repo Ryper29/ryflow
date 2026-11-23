@@ -92,6 +92,8 @@ export default function App() {
     setAiPrompt,
     aiResponse,
     setAiResponse,
+    aiResponseTruncated,
+    setAiResponseTruncated,
     aiLastQuestion,
     setAiLastQuestion,
     aiLoading,
@@ -611,6 +613,7 @@ export default function App() {
                                     <button
                                       onClick={() => {
                                         setAiResponse('');
+                                        setAiResponseTruncated(false);
                                         setAiLastQuestion('');
                                         setAiError('');
                                       }}
@@ -665,6 +668,9 @@ export default function App() {
                                   <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
                                     {aiResponse}
                                   </p>
+                                  {aiResponseTruncated && (
+                                    <p className="text-[9px] font-sans text-amber-200/65">(jawaban terpotong)</p>
+                                  )}
                                 </div>
                               ) : (
                                 <p className="text-[11px] font-sans text-white/30">

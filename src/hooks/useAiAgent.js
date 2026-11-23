@@ -23,6 +23,7 @@ export function useAiAgent(runtimeContext = {}) {
   const [isEditingKey, setIsEditingKey] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
+  const [aiResponseTruncated, setAiResponseTruncated] = useState(false);
   const [aiLastQuestion, setAiLastQuestion] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -120,6 +121,7 @@ export function useAiAgent(runtimeContext = {}) {
     setAiLoading(true);
     setAiError('');
     setAiResponse('');
+    setAiResponseTruncated(false);
 
     const now = new Date();
     const fullDateString = now.toLocaleDateString('id-ID', {
@@ -167,6 +169,7 @@ TAMBAHAN:
         setGeminiModelsList(result.availableModels);
       }
       setAiResponse(result.text);
+      setAiResponseTruncated(Boolean(result.truncated));
     } catch (err) {
       setAiError(err.message);
     } finally {
@@ -202,6 +205,8 @@ TAMBAHAN:
     setAiPrompt,
     aiResponse,
     setAiResponse,
+    aiResponseTruncated,
+    setAiResponseTruncated,
     aiLastQuestion,
     setAiLastQuestion,
     aiLoading,
