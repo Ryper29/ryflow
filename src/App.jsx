@@ -81,6 +81,7 @@ export default function App() {
   } = useMedia({ interpolate: isExpanded && activeTab === 'music' });
   const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(dayKey);
   const { todos, newTodo, setNewTodo, handleAddTodo, toggleTodo, deleteTodo, completedTodos } = useTodos();
+  const hasPending = todos.some((t) => !t.done);
   const {
     aiApiKey,
     keyInput,
@@ -603,7 +604,11 @@ export default function App() {
                                 )}
 
                                 <button
-                                  onClick={() => askAi('Berikan 1 kalimat motivasi singkat untuk menyelesaikan agendaku hari ini.')}
+                                  onClick={() => askAi(
+                                    hasPending
+                                      ? 'Dari agenda yang belum selesai, pilih 2-3 prioritas terpenting untuk dikerjakan lebih dulu. Urutkan dari yang utama, masing-masing satu kalimat.'
+                                      : 'Aku belum punya agenda yang tertunda. Sarankan 2-3 hal ringan yang layak kukerjakan hari ini.'
+                                  )}
                                   className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
                                 >
                                   ⚡ Fokus hari ini
