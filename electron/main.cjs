@@ -3,6 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const readline = require('readline');
+for (const stream of [process.stdout, process.stderr]) {
+    stream.on('error', (err) => { if (err.code !== 'EPIPE') throw err; });
+}
 
 // Mencegah aplikasi dibuka dobel (Single Instance Lock)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -79,16 +82,16 @@ function startMediaBridge() {
 
 function createWindow() {
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth } = primaryDisplay.workAreaSize;
+    const { bounds } = primaryDisplay;
 
-    const winWidth = 650;
+    const winWidth = 650;   // JANGAN dikecilkan: overshoot spring notch + telinga butuh ±640px
     const winHeight = 260;
 
     mainWindow = new BrowserWindow({
         width: winWidth,
         height: winHeight,
-        x: Math.round((screenWidth - winWidth) / 2),
-        y: 0,
+        x: Math.round(bounds.x + (bounds.width - winWidth) / 2),
+        y: bounds.y,
         frame: false,
         transparent: true,
         alwaysOnTop: true,
@@ -112,14 +115,19 @@ function createWindow() {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 
+// DevTools permanen untuk verifikasi CSP (hanya aktif dengan env var)
+    if (process.env.RYFLOW_DEVTOOLS) mainWindow.webContents.openDevTools({ mode: 'detach' });
+
     // CSP & Navigation Hardening
     const csp = [
         "default-src 'self'",
-        "script-src 'self'",
+        app.isPackaged ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: https:",
         "font-src 'self' https://fonts.gstatic.com",
-        "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
+        app.isPackaged
+            ? "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com"
+            : "connect-src 'self' http://localhost:5173 ws://localhost:5173 https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
     ].join('; ');
 
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -147,6 +155,7 @@ function createWindow() {
         } catch {}
         return { action: 'deny' };
     });
+
 }
 
 function createTray() {

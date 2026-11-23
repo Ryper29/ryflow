@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -55,6 +55,9 @@ export default function App() {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const isExpanded = isHovered || isPinned || isInputFocused;
+  const [isPointerInside, setIsPointerInside] = useState(false);
+  const closeTimer = useRef(null);
   const [activeTab, setActiveTab] = useState('music');
   const [tabDirection, setTabDirection] = useState(0);
 
@@ -89,6 +92,8 @@ export default function App() {
     setAiPrompt,
     aiResponse,
     setAiResponse,
+    aiResponseTruncated,
+    setAiResponseTruncated,
     aiLastQuestion,
     setAiLastQuestion,
     aiLoading,
@@ -104,34 +109,34 @@ export default function App() {
     handleAiSubmit,
   } = useAiAgent({ media, weather, weatherLabel, todos });
 
-  const isExpanded = isHovered || isPinned || isInputFocused;
+  // Interaktif hanya jika notch terbuka DAN pointer di atas notch
+  useEffect(() => {
+    const interactive = (isHovered || isPinned || isInputFocused) && isPointerInside;
+    console.log('[T1-IPC] setIgnoreMouseEvents', JSON.stringify({ ignore: !interactive, forward: true, isPointerInside }));
+    window.electronAPI?.setIgnoreMouseEvents(!interactive, { forward: true });
+  }, [isHovered, isPinned, isInputFocused, isPointerInside]);
 
-  const handleMouseMove = (e) => {
-    if (isExpanded) return;
-    if (e.clientY <= 6) {
-      setIsHovered(true);
-      if (window.electronAPI) {
-        window.electronAPI.setIgnoreMouseEvents(false);
-      }
-    }
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  const handleMouseEnter = () => {
+    console.log('[T1-EVENT] mouseenter');
+    clearTimeout(closeTimer.current);
+    setIsPointerInside(true);
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (!isPinned && !isInputFocused) {
-      if (window.electronAPI) {
-        window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-      }
-    }
+    console.log('[T1-EVENT] mouseleave');
+    setIsPointerInside(false);
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setIsHovered(false), 250);
   };
 
-  const togglePin = () => {
-    const nextPin = !isPinned;
-    setIsPinned(nextPin);
-    if (!nextPin && !isHovered && window.electronAPI) {
-      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-    }
+  const handleMouseMove = (e) => {
+    if (isExpanded) return;
+    if (e.clientY <= 6) setIsHovered(true);
   };
+
+  const togglePin = useCallback(() => setIsPinned((p) => !p), []);
 
   const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
     return (media.position + 0.25) >= curr.time ? idx : acc;
@@ -152,6 +157,7 @@ export default function App() {
     <div className="w-screen h-screen flex justify-center items-start pt-0 pointer-events-none">
       {/* Container Siluet MacBook Notch dengan Liquid Ears */}
       <motion.div
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         initial={false}
@@ -607,6 +613,7 @@ export default function App() {
                                     <button
                                       onClick={() => {
                                         setAiResponse('');
+                                        setAiResponseTruncated(false);
                                         setAiLastQuestion('');
                                         setAiError('');
                                       }}
@@ -628,45 +635,50 @@ export default function App() {
                             </div>
 
                             {/* Area Jawaban AI */}
-                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col justify-center">
-                              {aiLoading ? (
-                                <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
-                                  <Loader2 size={12} className="animate-spin text-white/70" />
-                                  <span>Sedang berpikir...</span>
-                                </div>
-                              ) : aiError ? (
-                                <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
-                                  <div className="flex items-center gap-1.5 overflow-hidden">
-                                    <AlertCircle size={12} className="text-rose-400 shrink-0" />
-                                    <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
-                                      {aiError}
-                                    </p>
+                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col">
+                              <div className="my-auto">
+                                {aiLoading ? (
+                                  <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
+                                    <Loader2 size={12} className="animate-spin text-white/70" />
+                                    <span>Sedang berpikir...</span>
                                   </div>
-                                  {aiError.includes('API Key') && (
-                                    <button
-                                      onClick={handleRemoveApiKey}
-                                      className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
-                                    >
-                                      Ganti Key
-                                    </button>
-                                  )}
-                                </div>
-                              ) : aiResponse ? (
-                                <div className="flex flex-col gap-0.5">
-                                  {aiLastQuestion && (
-                                    <p className="text-[10px] font-sans text-white/35 truncate">
-                                      Q: {aiLastQuestion}
+                                ) : aiError ? (
+                                  <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
+                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                      <AlertCircle size={12} className="text-rose-400 shrink-0" />
+                                      <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
+                                        {aiError}
+                                      </p>
+                                    </div>
+                                    {aiError.includes('API Key') && (
+                                      <button
+                                        onClick={handleRemoveApiKey}
+                                        className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
+                                      >
+                                        Ganti Key
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : aiResponse ? (
+                                  <div className="flex flex-col gap-0.5">
+                                    {aiLastQuestion && (
+                                      <p className="text-[10px] font-sans text-white/35 truncate">
+                                        Q: {aiLastQuestion}
+                                      </p>
+                                    )}
+                                    <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
+                                      {aiResponse}
                                     </p>
-                                  )}
-                                  <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
-                                    {aiResponse}
+                                    {aiResponseTruncated && (
+                                      <p className="text-[9px] font-sans text-amber-200/65">(jawaban terpotong)</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-[11px] font-sans text-white/30">
+                                    Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
                                   </p>
-                                </div>
-                              ) : (
-                                <p className="text-[11px] font-sans text-white/30">
-                                  Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
-                                </p>
-                              )}
+                                )}
+                              </div>
                             </div>
 
                             {/* Baris Input Prompt */}

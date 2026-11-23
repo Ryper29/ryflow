@@ -4,6 +4,7 @@ import {
   detectAiProvider,
   mapAiHttpError,
   callAiAgent,
+  getGeminiThinkingConfig,
 } from '../src/services/ai.js';
 
 describe('validateApiKey', () => {
@@ -123,5 +124,76 @@ describe('callAiAgent', () => {
   it('throws on short API key', async () => {
     await expect(callAiAgent({ apiKey: 'short', prompt: 'test', systemPrompt: 'test' }))
       .rejects.toThrow('API Key terlalu pendek');
+  });
+});
+
+describe('getGeminiThinkingConfig', () => {
+  it('uses low thinking for Gemini 3', () => {
+    expect(getGeminiThinkingConfig('gemini-3-flash-preview')).toEqual({ thinkingLevel: 'low' });
+  });
+
+  it('disables thinking for Gemini 2.5 Flash', () => {
+    expect(getGeminiThinkingConfig('gemini-2.5-flash-lite')).toEqual({ thinkingBudget: 0 });
+  });
+
+  it('uses the minimum supported budget for Gemini 2.5 Pro', () => {
+    expect(getGeminiThinkingConfig('gemini-2.5-pro')).toEqual({ thinkingBudget: 128 });
+  });
+
+  it('does not send thinking config for other models', () => {
+    expect(getGeminiThinkingConfig('gemini-flash-latest')).toBeUndefined();
+  });
+});
+
+describe('Gemini truncated responses', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    Object.defineProperty(global.navigator, 'onLine', { value: true, writable: true });
+  });
+
+  it('maps MAX_TOKENS to truncated', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ models: [{ name: 'models/gemini-3-flash-preview', supportedGenerationMethods: ['generateContent'] }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: 'Teks terpotong' }] } }] }) }));
+
+    await expect(callAiAgent({ apiKey: 'AIzaUniqueKey456', prompt: 'test', systemPrompt: 'test' }))
+      .resolves.toMatchObject({ text: 'Teks terpotong', truncated: true, finishReason: 'MAX_TOKENS' });
+  });
+
+  it('throws a clear error when MAX_TOKENS has no answer text', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ models: [{ name: 'models/gemini-3-flash-preview', supportedGenerationMethods: ['generateContent'] }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [] } }] }) }));
+
+    await expect(callAiAgent({ apiKey: 'AIzaAnotherKey789', prompt: 'test', systemPrompt: 'test' }))
+      .rejects.toThrow('Gemini kehabisan batas token sebelum menghasilkan jawaban. Coba lagi.');
+  });
+
+  it('sends maxOutputTokens >= 1024 and thinkingConfig for Gemini 3', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ models: [{ name: 'models/gemini-3-flash-preview', supportedGenerationMethods: ['generateContent'] }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Halo lengkap' }] } }] }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(callAiAgent({ apiKey: 'AIzaPayloadKey111', prompt: 'hai', systemPrompt: 'test', geminiModel: 'gemini-3-flash-preview' }))
+      .resolves.toMatchObject({ text: 'Halo lengkap', truncated: false, finishReason: 'STOP' });
+
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.generationConfig.maxOutputTokens).toBe(1024);
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+  });
+
+  it('omits thinkingConfig for unknown Gemini model family', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ models: [{ name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] }] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Ok' }] } }] }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(callAiAgent({ apiKey: 'AIzaPayloadKey222', prompt: 'hai', systemPrompt: 'test', geminiModel: 'gemini-flash-latest' }))
+      .resolves.toMatchObject({ text: 'Ok', truncated: false });
+
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.generationConfig.maxOutputTokens).toBe(1024);
+    expect(body.generationConfig.thinkingConfig).toBeUndefined();
   });
 });
