@@ -132,8 +132,7 @@ while ($true) {
             }
             if ($thumbPending) {
                 $thumbTries++
-                $simSkip = ($env:RYFLOW_SIM_THUMB_DELAY -eq '1' -and $thumbTries -le 3)
-                if (-not $simSkip -and $props -and $null -ne $props.Thumbnail) {
+                if ($props -and $null -ne $props.Thumbnail) {
                     try {
                         $streamRef = Await ($props.Thumbnail.OpenReadAsync()) $tStream
                         if ($null -ne $streamRef) {
@@ -152,11 +151,6 @@ while ($true) {
                         }
                     }
                     catch {}
-                }
-                if ($env:RYFLOW_SIM_THUMB_DELAY -eq '1' -and -not $simSkip -and $null -eq $cachedThumbnail) {
-                    $cachedThumbnail = "data:image/jpeg;base64," + [Convert]::ToBase64String([byte[]]@(0xFF, 0xD8, 0xFF, 0xE0))
-                    $thumbPending = $false
-                    $thumbDirty = $true
                 }
                 if ($thumbTries -ge 5) { $thumbPending = $false }
             }
