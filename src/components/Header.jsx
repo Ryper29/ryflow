@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Pin } from 'lucide-react';
 
-export function Header({
-  media,
+function HeaderBase({
+  isPlaying,
   activeTab,
   isPinned,
   isExpanded,
@@ -41,7 +41,7 @@ export function Header({
             className="w-4 h-4 rounded-full object-cover ring-1 ring-white/15 animate-spin"
             style={{
               animationDuration: "8s",
-              animationPlayState: media?.isPlaying ? "running" : "paused",
+              animationPlayState: isPlaying ? "running" : "paused",
             }}
           />
         ) : (
@@ -49,11 +49,11 @@ export function Header({
             className="w-4 h-4 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center animate-spin"
             style={{
               animationDuration: "8s",
-              animationPlayState: media?.isPlaying ? "running" : "paused",
+              animationPlayState: isPlaying ? "running" : "paused",
             }}
           >
             <div
-              className={`w-1.5 h-1.5 rounded-full ${media?.isPlaying ? "bg-emerald-400" : "bg-white/40"}`}
+              className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-emerald-400" : "bg-white/40"}`}
             />
           </div>
         )}
@@ -69,7 +69,7 @@ export function Header({
             <motion.span
               key={i}
               animate={{
-                height: media?.isPlaying ? ["25%", "95%", "35%"] : "20%",
+                height: isPlaying ? ["25%", "95%", "35%"] : "20%",
               }}
               transition={{
                 repeat: Infinity,
@@ -88,7 +88,7 @@ export function Header({
     <div className="flex items-center justify-between text-[11px] text-white/50 border-b border-white/[0.07] pb-2">
       <div className="flex items-center gap-2">
         <span
-          className={`w-2 h-2 rounded-full ${media?.isPlaying ? "bg-emerald-400" : "bg-white/30"}`}
+          className={`w-2 h-2 rounded-full ${isPlaying ? "bg-emerald-400" : "bg-white/30"}`}
         />
         <span className="font-sans font-semibold text-white/85 tracking-tight">
           Ryflow
@@ -145,3 +145,5 @@ export function Header({
     </div>
   );
 }
+
+export const Header = memo(HeaderBase);

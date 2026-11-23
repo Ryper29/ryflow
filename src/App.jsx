@@ -62,13 +62,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('music');
   const [tabDirection, setTabDirection] = useState(0);
 
-  const handleTabChange = (nextTab) => {
+  const handleTabChange = useCallback((nextTab) => {
     if (nextTab === activeTab) return;
     const prevIdx = TAB_ORDER.indexOf(activeTab);
     const nextIdx = TAB_ORDER.indexOf(nextTab);
     setTabDirection(nextIdx > prevIdx ? 1 : -1);
     setActiveTab(nextTab);
-  };
+  }, [activeTab]);
 
   const { dayKey, timeString, dateHeaderString } = useClock();
   const {
@@ -78,7 +78,7 @@ export default function App() {
     displayCover,
     triggerControl,
     handleSeek,
-  } = useMedia();
+  } = useMedia({ interpolate: isExpanded && activeTab === 'music' });
   const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(dayKey);
   const { todos, newTodo, setNewTodo, handleAddTodo, toggleTodo, deleteTodo, completedTodos } = useTodos();
   const {
@@ -207,7 +207,7 @@ export default function App() {
             {/* TAMPILAN SAAT MENUTUP (IDLE NOTCH) */}
             {!isExpanded ? (
               <Header
-                media={media}
+                isPlaying={media.isPlaying}
                 isExpanded={false}
                 timeString={timeString}
                 displayCover={displayCover}
@@ -231,7 +231,7 @@ export default function App() {
               >
                 {/* Header Bar Atas dengan Micro-Tabs */}
                 <Header
-                  media={media}
+                  isPlaying={media.isPlaying}
                   activeTab={activeTab}
                   isPinned={isPinned}
                   isExpanded={true}

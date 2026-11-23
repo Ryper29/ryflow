@@ -18,7 +18,7 @@ const sleep = (ms, signal) =>
     signal.addEventListener('abort', () => { clearTimeout(t); resolve(); }, { once: true });
   });
 
-export function useMedia() {
+export function useMedia({ interpolate = true } = {}) {
   const [media, setMedia] = useState(INITIAL_MEDIA);
   const [lyrics, setLyrics] = useState([]);
   const [lyricStatus, setLyricStatus] = useState('idle');
@@ -55,17 +55,21 @@ export function useMedia() {
     return () => clearTimeout(t);
   }, [media.title, media.artist, media.thumbnail, media.thumbnailKey]);
 
-  // Position interpolation when playing
+  // Position interpolation when playing and music tab visible
   useEffect(() => {
-    if (!media.isPlaying) return;
+    if (!media.isPlaying || !interpolate) return;
+    let last = performance.now();
     const timer = setInterval(() => {
+      const now = performance.now();
+      const dt = (now - last) / 1000;
+      last = now;
       setMedia((prev) => ({
         ...prev,
-        position: Math.min(prev.duration, +(prev.position + 0.3).toFixed(2)),
+        position: Math.min(prev.duration, +(prev.position + dt).toFixed(2)),
       }));
     }, 300);
     return () => clearInterval(timer);
-  }, [media.isPlaying]);
+  }, [media.isPlaying, interpolate]);
 
   // Fetch lyrics and cover art when track changes (debounce, paralel, iTunes hanya jika perlu)
   useEffect(() => {
