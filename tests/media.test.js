@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import {
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const {
   ALLOWED_MEDIA_COMMANDS,
   SEEK_PATTERN,
   validateMediaCommand,
   sanitizeMediaCommand,
   validateMouseOptions,
   validateApiKeyInput,
-} from '../src/services/media.js';
+} = require('../electron/validators.cjs');
 
 describe('validateMediaCommand', () => {
   it('accepts playpause', () => {

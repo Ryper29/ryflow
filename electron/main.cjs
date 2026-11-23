@@ -6,6 +6,12 @@ const readline = require('readline');
 for (const stream of [process.stdout, process.stderr]) {
     stream.on('error', (err) => { if (err.code !== 'EPIPE') throw err; });
 }
+const {
+    sanitizeMediaCommand,
+    validateMediaCommand,
+    validateMouseOptions,
+    validateApiKeyInput,
+} = require('./validators.cjs');
 
 // Mencegah aplikasi dibuka dobel (Single Instance Lock)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -20,7 +26,6 @@ let mediaRestartTimer;
 let isQuitting = false;
 let tray = null;
 
-const allowedMediaCommands = new Set(['playpause', 'next', 'prev']);
 const encryptedKeyPath = path.join(app.getPath('userData'), 'ryflow-ai-key.bin');
 
 // File perintah ditaruh di folder temp agar aman ditulis di mode produksi
@@ -217,14 +222,12 @@ function createTray() {
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || typeof ignore !== 'boolean') return;
-    const safeOptions = options && options.forward === true ? { forward: true } : undefined;
-    win.setIgnoreMouseEvents(ignore, safeOptions);
+    win.setIgnoreMouseEvents(ignore, validateMouseOptions(options));
 });
 
 ipcMain.on('media-control', (_event, action) => {
-    const command = typeof action === 'string' ? action.trim() : '';
-    const isSeek = /^seek:(?:0|[1-9]\d*)(?:\.\d+)?$/.test(command);
-    if (!allowedMediaCommands.has(command) && !isSeek) return;
+    const command = sanitizeMediaCommand(action);
+    if (!validateMediaCommand(command)) return;
     try {
         fs.writeFileSync(cmdFilePath, command, 'utf8');
     } catch (err) {
@@ -243,7 +246,7 @@ ipcMain.handle('get-ai-key', () => {
 });
 
 ipcMain.handle('set-ai-key', (_event, key) => {
-    if (typeof key !== 'string' || key.length > 4096 || /[\r\n]/.test(key)) return false;
+    if (!validateApiKeyInput(key)) return false;
     if (!safeStorage.isEncryptionAvailable()) return false;
     try {
         fs.mkdirSync(path.dirname(encryptedKeyPath), { recursive: true });
