@@ -140,10 +140,10 @@ export default function App() {
 
   const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
     return (media.position + 0.25) >= curr.time ? idx : acc;
-  }, 0);
+  }, -1);
 
   const prevLine = activeLyricIndex > 0 ? lyrics[activeLyricIndex - 1]?.text : "";
-  const currentLine = lyrics[activeLyricIndex]?.text || "• • •";
+  const currentLine = activeLyricIndex >= 0 ? (lyrics[activeLyricIndex]?.text || "• • •") : "• • •";
   const nextLine = activeLyricIndex < lyrics.length - 1 ? lyrics[activeLyricIndex + 1]?.text : "";
 
   const formatTime = (sec) => {
@@ -338,7 +338,7 @@ export default function App() {
                             </p>
                           )}
 
-                          {(lyricStatus === 'synced' || lyricStatus === 'plain') && (
+                          {lyricStatus === 'synced' && (
                             <AnimatePresence mode="popLayout">
                               <motion.div
                                 key={activeLyricIndex}
@@ -359,6 +359,15 @@ export default function App() {
                                 </p>
                               </motion.div>
                             </AnimatePresence>
+                          )}
+
+                          {lyricStatus === 'plain' && (
+                            <div className="h-28 overflow-y-auto pr-2 font-sans">
+                              <p className="text-[10px] text-white/30 mb-1.5">Lirik tidak tersinkron</p>
+                              {lyrics.map((l, i) => (
+                                <p key={i} className="text-[12px] text-white/70 leading-snug mb-1">{l.text}</p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </motion.div>

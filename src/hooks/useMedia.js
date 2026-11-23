@@ -133,10 +133,12 @@ export function useMedia() {
             .split('\n')
             .map((t) => t.trim())
             .filter(Boolean)
-            .map((text, idx) => ({ time: idx * 4, text }));
-          setLyrics(plainLines);
-          setLyricStatus('plain');
-          return;
+            .map((text) => ({ text }));
+          if (plainLines.length > 0) {
+            setLyrics(plainLines);
+            setLyricStatus('plain');
+            return;
+          }
         }
 
         setLyricStatus('not_found');

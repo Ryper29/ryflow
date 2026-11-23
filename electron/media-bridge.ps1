@@ -150,7 +150,7 @@ while ($true) {
                 title     = $title
                 artist    = $artist
                 isPlaying = [bool]$isPlaying
-                position  = [int][Math]::Floor([Math]::Max(0, $pos))
+                position  = [Math]::Round([Math]::Max(0.0, [double]$pos), 2)
                 duration  = [int][Math]::Floor([Math]::Max(1, $dur))
                 thumbnail = $cachedThumbnail
             } | ConvertTo-Json -Compress
