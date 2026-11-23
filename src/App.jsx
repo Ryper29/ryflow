@@ -206,6 +206,7 @@ export default function App() {
             {/* TAMPILAN SAAT MENUTUP (IDLE NOTCH) */}
             {!isExpanded ? (
               <Header
+                key="idle-view"
                 media={media}
                 isExpanded={false}
                 timeString={timeString}
