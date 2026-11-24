@@ -32,9 +32,9 @@
 - Membaca judul, artis, cover, posisi, dan durasi dari **Windows GSMTC** (Spotify, Apple Music, YouTube Music, browser) lewat jembatan PowerShell di background.
 - Kontrol Play/Pause, Next, Previous, dan *click-to-seek* pada progress bar.
 - Cover album mini berbentuk **piringan vinyl** yang berputar saat musik diputar dan berhenti saat dijeda.
-- **Lirik tersinkron otomatis** dari [LRCLIB](https://lrclib.net/) (fallback ke lirik teks biasa), tampil 3 baris: sebelumnya (redup), aktif (terang), berikutnya.
+- **Lirik tersinkron otomatis** dari [LRCLIB](https://lrclib.net/) (lirik teks biasa tampil sebagai daftar gulir "Lirik tidak tersinkron"), tampil 3 baris: sebelumnya (redup), aktif (terang), berikutnya, dan `• • •` selama intro sebelum baris pertama.
 - Parser judul YouTube (`Artis - Judul`, pembersihan `(Official Video)`, VEVO/Topic, dll.) agar lirik tetap ketemu saat memutar dari browser.
-- Fallback cover art resolusi tinggi dari iTunes Search API.
+- Fallback cover art resolusi tinggi dari iTunes Search API (dipanggil hanya jika Windows tidak menyediakan thumbnail).
 
 ### 🗓️ Tab Today
 - **Cuaca real-time** dari [Open-Meteo](https://open-meteo.com/) (suhu, kelembapan, kondisi dalam bahasa Indonesia), diperbarui tiap 15 menit.
@@ -79,7 +79,7 @@ Pertanyaan ke AI selalu menyertakan konteks di atas. Hindari menulis informasi s
 - **Frontend:** [React 19](https://react.dev/), [Vite](https://vite.dev/)
 - **Styling & Animasi:** [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/)
 - **Ikon:** [Lucide React](https://lucide.dev/)
-- **Tipografi:** Plus Jakarta Sans (UI & lirik), DM Mono (jam & timer)
+- **Tipografi:** Plus Jakarta Sans Variable & DM Mono (dibundel lokal via `@fontsource`)
 - **Media engine:** Windows Runtime (WinRT) GSMTC via PowerShell child process
 - **Sumber data:** LRCLIB, iTunes Search API, Open-Meteo, Nominatim, geojs.io
 - **Kualitas:** [Vitest](https://vitest.dev/) (unit test), oxlint
@@ -92,7 +92,7 @@ Pertanyaan ke AI selalu menyertakan konteks di atas. Hindari menulis informasi s
 ```
 src/
 ├── components/
-│   └── Header.jsx          # Header idle & expanded
+│   └── Header.jsx          # Header idle & expanded (memo)
 ├── hooks/
 │   ├── useClock.js
 │   ├── useMedia.js
@@ -101,17 +101,20 @@ src/
 │   └── useAiAgent.js
 ├── services/
 │   ├── lyrics.js
+│   ├── lyricsCache.js
 │   ├── weather.js
 │   ├── ai.js
-│   └── media.js
+│   ├── mediaState.js
+│   └── calendar.js
 ├── App.jsx                 # Orkestrator: notch, tab, animasi
 └── main.jsx
 electron/
 ├── main.cjs                # Window, CSP, IPC, safeStorage, media bridge
 ├── preload.cjs
-├── media-bridge.ps1        # Jembatan GSMTC (PowerShell)
+├── validators.cjs          # Validator bersama IPC & command media
+├── media-bridge.ps1        # Jembatan GSMTC (PowerShell 5.1)
 └── tray.png
-tests/                      # Vitest untuk services
+tests/                      # Vitest untuk services & validators
 ```
 
 ---

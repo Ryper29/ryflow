@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseLrc,
+  getActiveLyricIndex,
   pickBestMatch,
   cleanTrackTitle,
   stripVideoSuffixes,
@@ -174,5 +175,52 @@ describe('parseYouTubeTitle', () => {
     const result = parseYouTubeTitle('', 'Artist');
     expect(result.title).toBe('');
     expect(result.artist).toBe('Artist');
+  });
+});
+
+describe('getActiveLyricIndex', () => {
+  const sample = [
+    { time: 10, text: 'Line 1' },
+    { time: 15, text: 'Line 2' },
+    { time: 20, text: 'Line 3' },
+  ];
+
+  it('returns -1 for empty array or nullish input', () => {
+    expect(getActiveLyricIndex([], 5)).toBe(-1);
+    expect(getActiveLyricIndex(null, 5)).toBe(-1);
+  });
+
+  it('returns -1 before the first line', () => {
+    expect(getActiveLyricIndex(sample, 9.5)).toBe(-1);
+  });
+
+  it('returns matching index right at boundary including duplicate timestamps', () => {
+    expect(getActiveLyricIndex(sample, 9.75)).toBe(0);
+    expect(getActiveLyricIndex(sample, 15, 0)).toBe(1);
+    const dup = [
+      { time: 10, text: 'First' },
+      { time: 10, text: 'Second' },
+      { time: 20, text: 'Third' },
+    ];
+    expect(getActiveLyricIndex(dup, 10, 0)).toBe(1);
+  });
+
+  it('returns current index between lines', () => {
+    expect(getActiveLyricIndex(sample, 17)).toBe(1);
+  });
+
+  it('returns last index after the final line', () => {
+    expect(getActiveLyricIndex(sample, 45)).toBe(2);
+  });
+
+  it('ignores lines without numeric time', () => {
+    const plain = [{ text: 'Plain 1' }, { text: 'Plain 2' }];
+    expect(getActiveLyricIndex(plain, 10)).toBe(-1);
+    const mixed = [
+      { time: 10, text: 'Timed 1' },
+      { text: 'No time' },
+      { time: 20, text: 'Timed 2' },
+    ];
+    expect(getActiveLyricIndex(mixed, 15, 0)).toBe(0);
   });
 });

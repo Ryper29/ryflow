@@ -169,7 +169,7 @@ describe('Gemini truncated responses', () => {
       .rejects.toThrow('Gemini kehabisan batas token sebelum menghasilkan jawaban. Coba lagi.');
   });
 
-  it('sends maxOutputTokens >= 1024 and thinkingConfig for Gemini 3', async () => {
+  it('sends maxOutputTokens 2048 and thinkingConfig for Gemini 3', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ models: [{ name: 'models/gemini-3-flash-preview', supportedGenerationMethods: ['generateContent'] }] }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Halo lengkap' }] } }] }) });
@@ -179,7 +179,7 @@ describe('Gemini truncated responses', () => {
       .resolves.toMatchObject({ text: 'Halo lengkap', truncated: false, finishReason: 'STOP' });
 
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(body.generationConfig.maxOutputTokens).toBe(1024);
+    expect(body.generationConfig.maxOutputTokens).toBe(2048);
     expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
   });
 
@@ -193,7 +193,7 @@ describe('Gemini truncated responses', () => {
       .resolves.toMatchObject({ text: 'Ok', truncated: false });
 
     const body = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(body.generationConfig.maxOutputTokens).toBe(1024);
+    expect(body.generationConfig.maxOutputTokens).toBe(2048);
     expect(body.generationConfig.thinkingConfig).toBeUndefined();
   });
 });

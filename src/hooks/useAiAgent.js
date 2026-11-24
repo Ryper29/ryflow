@@ -145,7 +145,8 @@ KONTEKS REAL-TIME:
 
 TAMBAHAN:
 - Jika user menanyakan arti lagu, berikan interpretasi lirik yang mendalam tapi singkat.
-- Jika user meminta fokus hari ini, berikan 2-3 prioritas berdasarkan agenda yang belum selesai.`;
+- Jika user meminta fokus hari ini, berikan 2-3 prioritas berdasarkan agenda yang belum selesai.
+- Jangan memakai format Markdown (tanpa tanda bintang atau pagar).`;
 
     const todosList = todos?.filter((t) => !t.done).map((t) => t.text).join(', ') || 'Tidak ada';
     if (todosList !== 'Tidak ada') {

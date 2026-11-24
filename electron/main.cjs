@@ -6,6 +6,12 @@ const readline = require('readline');
 for (const stream of [process.stdout, process.stderr]) {
     stream.on('error', (err) => { if (err.code !== 'EPIPE') throw err; });
 }
+const {
+    sanitizeMediaCommand,
+    validateMediaCommand,
+    validateMouseOptions,
+    validateApiKeyInput,
+} = require('./validators.cjs');
 
 // Mencegah aplikasi dibuka dobel (Single Instance Lock)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -20,7 +26,6 @@ let mediaRestartTimer;
 let isQuitting = false;
 let tray = null;
 
-const allowedMediaCommands = new Set(['playpause', 'next', 'prev']);
 const encryptedKeyPath = path.join(app.getPath('userData'), 'ryflow-ai-key.bin');
 
 // File perintah ditaruh di folder temp agar aman ditulis di mode produksi
@@ -33,6 +38,20 @@ function getScriptPath() {
     return path.join(__dirname, 'media-bridge.ps1');
 }
 
+let restartDelay = 2000;
+let bridgeStartedAt = 0;
+
+function scheduleBridgeRestart(reason) {
+    if (isQuitting || mediaRestartTimer) return;
+    if (Date.now() - bridgeStartedAt > 30000) restartDelay = 2000; // sempat sehat -> mulai dari awal
+    console.error(`[MediaBridge] restart dalam ${restartDelay} ms (${reason})`);
+    mediaRestartTimer = setTimeout(() => {
+        mediaRestartTimer = null;
+        startMediaBridge();
+    }, restartDelay);
+    restartDelay = Math.min(restartDelay * 2, 16000);
+}
+
 function startMediaBridge() {
     const scriptPath = getScriptPath();
 
@@ -40,6 +59,7 @@ function startMediaBridge() {
         try { fs.unlinkSync(cmdFilePath); } catch { }
     }
 
+    bridgeStartedAt = Date.now();
     mediaProcess = spawn('powershell.exe', [
         '-NoProfile',
         '-NonInteractive',
@@ -47,7 +67,7 @@ function startMediaBridge() {
         '-ExecutionPolicy', 'Bypass',
         '-File', scriptPath,
         '-cmdFilePath', cmdFilePath
-    ]);
+    ], { windowsHide: true });
 
     const rl = readline.createInterface({ input: mediaProcess.stdout });
 
@@ -68,15 +88,15 @@ function startMediaBridge() {
         console.error('[MediaBridge PS Error]:', data.toString());
     });
 
+    mediaProcess.on('error', (err) => {
+        console.error('[MediaBridge Spawn Error]:', err.message);
+        mediaProcess = null;
+        scheduleBridgeRestart('spawn error');
+    });
+
     mediaProcess.on('exit', (_code, signal) => {
         mediaProcess = null;
-        if (!isQuitting && !mediaRestartTimer) {
-            console.error(`[MediaBridge Exit]: ${signal || 'process exited'}`);
-            mediaRestartTimer = setTimeout(() => {
-                mediaRestartTimer = null;
-                startMediaBridge();
-            }, 2000);
-        }
+        scheduleBridgeRestart(signal || 'exit');
     });
 }
 
@@ -122,12 +142,16 @@ function createWindow() {
     const csp = [
         "default-src 'self'",
         app.isPackaged ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "img-src 'self' data: https:",
-        "font-src 'self' https://fonts.gstatic.com",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https://*.mzstatic.com",
+        "font-src 'self' data:",
         app.isPackaged
             ? "connect-src 'self' https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com"
             : "connect-src 'self' http://localhost:5173 ws://localhost:5173 https://lrclib.net https://itunes.apple.com https://api.open-meteo.com https://nominatim.openstreetmap.org https://get.geojs.io https://generativelanguage.googleapis.com https://api.x.ai https://api.groq.com https://api.anthropic.com https://api.openai.com",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-src 'none'",
     ].join('; ');
 
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -202,14 +226,12 @@ function createTray() {
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win || typeof ignore !== 'boolean') return;
-    const safeOptions = options && options.forward === true ? { forward: true } : undefined;
-    win.setIgnoreMouseEvents(ignore, safeOptions);
+    win.setIgnoreMouseEvents(ignore, validateMouseOptions(options));
 });
 
 ipcMain.on('media-control', (_event, action) => {
-    const command = typeof action === 'string' ? action.trim() : '';
-    const isSeek = /^seek:(?:0|[1-9]\d*)(?:\.\d+)?$/.test(command);
-    if (!allowedMediaCommands.has(command) && !isSeek) return;
+    const command = sanitizeMediaCommand(action);
+    if (!validateMediaCommand(command)) return;
     try {
         fs.writeFileSync(cmdFilePath, command, 'utf8');
     } catch (err) {
@@ -228,7 +250,7 @@ ipcMain.handle('get-ai-key', () => {
 });
 
 ipcMain.handle('set-ai-key', (_event, key) => {
-    if (typeof key !== 'string' || key.length > 4096 || /[\r\n]/.test(key)) return false;
+    if (!validateApiKeyInput(key)) return false;
     if (!safeStorage.isEncryptionAvailable()) return false;
     try {
         fs.mkdirSync(path.dirname(encryptedKeyPath), { recursive: true });

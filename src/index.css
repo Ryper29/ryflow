@@ -2,9 +2,7 @@
 
 @theme {
   /* UI: nama app, label, judul lagu, artis */
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  /* Lirik aktif & sekitar */
-  --font-lyric: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   /* Jam digital & timer progress */
   --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -17,4 +15,16 @@ body,
   padding: 0;
   overflow: hidden;
   user-select: none;
+}
+
+@keyframes ryflow-eq {
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ryflow-eq-bar {
+    animation: none !important;
+    transform: scaleY(0.5) !important;
+  }
 }

@@ -22,8 +22,10 @@ import { useMedia } from './hooks/useMedia';
 import { useWeather } from './hooks/useWeather';
 import { useTodos } from './hooks/useTodos';
 import { useAiAgent } from './hooks/useAiAgent';
+import { getActiveLyricIndex } from './services/lyrics';
 
 const TAB_ORDER = ['music', 'today', 'ai'];
+const CLOSE_DELAY_MS = 250;
 
 const tabContentVariants = {
   enter: (direction) => ({
@@ -61,15 +63,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('music');
   const [tabDirection, setTabDirection] = useState(0);
 
-  const handleTabChange = (nextTab) => {
+  const handleTabChange = useCallback((nextTab) => {
     if (nextTab === activeTab) return;
     const prevIdx = TAB_ORDER.indexOf(activeTab);
     const nextIdx = TAB_ORDER.indexOf(nextTab);
     setTabDirection(nextIdx > prevIdx ? 1 : -1);
     setActiveTab(nextTab);
-  };
+  }, [activeTab]);
 
-  const { now, timeString, dateHeaderString } = useClock();
+  const { dayKey, timeString, dateHeaderString } = useClock();
   const {
     media,
     lyrics,
@@ -77,9 +79,10 @@ export default function App() {
     displayCover,
     triggerControl,
     handleSeek,
-  } = useMedia();
-  const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(now);
+  } = useMedia({ interpolate: isExpanded && activeTab === 'music' });
+  const { weather, weatherLabel, WeatherIcon, weekDays } = useWeather(dayKey);
   const { todos, newTodo, setNewTodo, handleAddTodo, toggleTodo, deleteTodo, completedTodos } = useTodos();
+  const hasPending = todos.some((t) => !t.done);
   const {
     aiApiKey,
     keyInput,
@@ -128,7 +131,7 @@ export default function App() {
     console.log('[T1-EVENT] mouseleave');
     setIsPointerInside(false);
     clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setIsHovered(false), 250);
+    closeTimer.current = setTimeout(() => setIsHovered(false), CLOSE_DELAY_MS);
   };
 
   const handleMouseMove = (e) => {
@@ -138,12 +141,10 @@ export default function App() {
 
   const togglePin = useCallback(() => setIsPinned((p) => !p), []);
 
-  const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
-    return (media.position + 0.25) >= curr.time ? idx : acc;
-  }, 0);
+  const activeLyricIndex = getActiveLyricIndex(lyrics, media.position);
 
   const prevLine = activeLyricIndex > 0 ? lyrics[activeLyricIndex - 1]?.text : "";
-  const currentLine = lyrics[activeLyricIndex]?.text || "• • •";
+  const currentLine = activeLyricIndex >= 0 ? (lyrics[activeLyricIndex]?.text || "• • •") : "• • •";
   const nextLine = activeLyricIndex < lyrics.length - 1 ? lyrics[activeLyricIndex + 1]?.text : "";
 
   const formatTime = (sec) => {
@@ -174,7 +175,7 @@ export default function App() {
           stiffness: 380,
           damping: 24,
         }}
-        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/8 shadow-[0_12px_36px_rgba(0,0,0,0.85)] backdrop-blur-2xl origin-top"
+        className="pointer-events-auto relative bg-[#0a0a0c]/95 text-white border-x border-b border-t-0 border-white/8 shadow-[0_12px_36px_rgba(0,0,0,0.85)] origin-top"
       >
         {/* Lekukan Bahu Kiri Atas (MacBook Left Ear) */}
         <svg
@@ -206,7 +207,7 @@ export default function App() {
             {/* TAMPILAN SAAT MENUTUP (IDLE NOTCH) */}
             {!isExpanded ? (
               <Header
-                media={media}
+                isPlaying={media.isPlaying}
                 isExpanded={false}
                 timeString={timeString}
                 displayCover={displayCover}
@@ -230,7 +231,7 @@ export default function App() {
               >
                 {/* Header Bar Atas dengan Micro-Tabs */}
                 <Header
-                  media={media}
+                  isPlaying={media.isPlaying}
                   activeTab={activeTab}
                   isPinned={isPinned}
                   isExpanded={true}
@@ -338,7 +339,7 @@ export default function App() {
                             </p>
                           )}
 
-                          {(lyricStatus === 'synced' || lyricStatus === 'plain') && (
+                          {lyricStatus === 'synced' && (
                             <AnimatePresence mode="popLayout">
                               <motion.div
                                 key={activeLyricIndex}
@@ -359,6 +360,15 @@ export default function App() {
                                 </p>
                               </motion.div>
                             </AnimatePresence>
+                          )}
+
+                          {lyricStatus === 'plain' && (
+                            <div className="h-28 overflow-y-auto pr-2 font-sans">
+                              <p className="text-[10px] text-white/30 mb-1.5">Lirik tidak tersinkron</p>
+                              {lyrics.map((l, i) => (
+                                <p key={i} className="text-[12px] text-white/70 leading-snug mb-1">{l.text}</p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </motion.div>
@@ -593,7 +603,11 @@ export default function App() {
                                 )}
 
                                 <button
-                                  onClick={() => askAi('Berikan 1 kalimat motivasi singkat untuk menyelesaikan agendaku hari ini.')}
+                                  onClick={() => askAi(
+                                    hasPending
+                                      ? 'Dari agenda yang belum selesai, pilih 2-3 prioritas terpenting untuk dikerjakan lebih dulu. Urutkan dari yang utama, masing-masing satu kalimat.'
+                                      : 'Aku belum punya agenda yang tertunda. Sarankan 2-3 hal ringan yang layak kukerjakan hari ini.'
+                                  )}
                                   className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
                                 >
                                   ⚡ Fokus hari ini
