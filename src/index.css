@@ -1,10 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  /* UI: nama app, label, judul lagu, artis */
-  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  /* Jam digital & timer progress */
-  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Consolas', ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 html,
@@ -15,6 +17,22 @@ body,
   padding: 0;
   overflow: hidden;
   user-select: none;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.ryflow-scroll {
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+:where(button, input, [tabindex]):focus-visible {
+  outline: 1.5px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
 @keyframes ryflow-eq {

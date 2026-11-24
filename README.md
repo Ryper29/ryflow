@@ -46,7 +46,7 @@
 - Asisten AI **bring-your-own-key**. Provider terdeteksi otomatis dari prefix key: **Google Gemini**, **Grok (xAI) / Groq**, **OpenAI**, dan **Anthropic**.
 - Model Gemini ditemukan dinamis dari akun kamu, dan bisa diganti dengan klik badge model.
 - Mengenali konteks: lagu yang sedang diputar, cuaca, jam, dan agenda yang belum selesai.
-- Tombol cepat: **🎵 Makna lagu ini** dan **⚡ Fokus hari ini**, plus salin jawaban dan pesan error yang ramah.
+- Tombol cepat: **Makna lagu** dan **Fokus hari ini**, plus salin jawaban dan pesan error yang ringkas.
 - API key disimpan terenkripsi lewat Electron `safeStorage` (Windows DPAPI), bukan `localStorage`.
 
 ### 🚀 Aplikasi Mandiri
@@ -79,7 +79,7 @@ Pertanyaan ke AI selalu menyertakan konteks di atas. Hindari menulis informasi s
 - **Frontend:** [React 19](https://react.dev/), [Vite](https://vite.dev/)
 - **Styling & Animasi:** [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/)
 - **Ikon:** [Lucide React](https://lucide.dev/)
-- **Tipografi:** Plus Jakarta Sans Variable & DM Mono (dibundel lokal via `@fontsource`)
+- **Tipografi:** Segoe UI Variable / font sistem Windows dengan `tabular-nums` (tanpa font eksternal)
 - **Media engine:** Windows Runtime (WinRT) GSMTC via PowerShell child process
 - **Sumber data:** LRCLIB, iTunes Search API, Open-Meteo, Nominatim, geojs.io
 - **Kualitas:** [Vitest](https://vitest.dev/) (unit test), oxlint

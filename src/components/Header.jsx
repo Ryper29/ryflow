@@ -2,6 +2,12 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Pin } from 'lucide-react';
 
+const TABS = [
+  { id: 'music', label: 'Music' },
+  { id: 'today', label: 'Today' },
+  { id: 'ai', label: 'AI' },
+];
+
 function HeaderBase({
   isPlaying,
   activeTab,
@@ -23,7 +29,7 @@ function HeaderBase({
           y: 0,
           transition: {
             opacity: { duration: 0.14, delay: 0.06 },
-            y: { type: "spring", stiffness: 360, damping: 22, delay: 0.05 },
+            y: { type: 'spring', stiffness: 360, damping: 22, delay: 0.05 },
           },
         }}
         exit={{
@@ -31,7 +37,7 @@ function HeaderBase({
           y: -4,
           transition: { duration: 0.08 },
         }}
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-43 h-8.5 px-3.5 flex items-center justify-between text-xs font-sans font-semibold tracking-wide"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-43 h-8.5 px-3.5 flex items-center justify-between text-[12px] font-sans"
       >
         {/* Vinyl Cover Art */}
         {displayCover ? (
@@ -40,31 +46,31 @@ function HeaderBase({
             alt="cover"
             className="w-4 h-4 rounded-full object-cover ring-1 ring-white/15 animate-spin"
             style={{
-              animationDuration: "8s",
-              animationPlayState: isPlaying ? "running" : "paused",
+              animationDuration: '8s',
+              animationPlayState: isPlaying ? 'running' : 'paused',
             }}
           />
         ) : (
           <div
             className="w-4 h-4 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center animate-spin"
             style={{
-              animationDuration: "8s",
-              animationPlayState: isPlaying ? "running" : "paused",
+              animationDuration: '8s',
+              animationPlayState: isPlaying ? 'running' : 'paused',
             }}
           >
             <div
-              className={`w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-emerald-400" : "bg-white/40"}`}
+              className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-white/60' : 'bg-white/25'}`}
             />
           </div>
         )}
 
         {/* Jam Digital */}
-        <span className="text-white/90 font-mono font-medium text-[12.5px] tracking-tight">
+        <span className="font-sans tabular-nums font-medium text-[12px] text-white/92">
           {timeString}
         </span>
 
         {/* Minimalist Monochrome Waveform */}
-        <div className="flex items-center gap-0.5 h-3">
+        <div className="flex items-center gap-0.5 h-3" aria-hidden="true">
           {[0, 1, 2, 3, 4].map((i) => (
             <span
               key={i}
@@ -82,51 +88,55 @@ function HeaderBase({
   }
 
   return (
-    <div className="flex items-center justify-between text-[11px] text-white/50 border-b border-white/[0.07] pb-2">
-      <div className="flex items-center gap-2">
-        <span
-          className={`w-2 h-2 rounded-full ${isPlaying ? "bg-emerald-400" : "bg-white/30"}`}
-        />
-        <span className="font-sans font-semibold text-white/85 tracking-tight">
+    <div className="flex items-center justify-between text-[11px] text-white/56 border-b border-white/[0.07] pb-2">
+      <div className="flex items-center gap-1.5">
+        <span className="font-sans font-medium text-[12px] text-white/88 tracking-[-0.01em]">
           Ryflow
         </span>
         <button
+          type="button"
           onClick={togglePin}
-          title={isPinned ? "Lepas sematan" : "Sematkan agar tetap terbuka"}
-          className={`p-1 rounded-md transition cursor-pointer ${isPinned
-            ? "bg-white/20 text-white"
-            : "text-white/35 hover:text-white/75 hover:bg-white/6"
+          aria-label={isPinned ? 'Lepas sematan' : 'Sematkan agar tetap terbuka'}
+          title={isPinned ? 'Lepas sematan' : 'Sematkan agar tetap terbuka'}
+          className={`inline-flex items-center justify-center p-1 rounded-md transition cursor-pointer ${
+            isPinned
+              ? 'bg-white/12 text-white/92'
+              : 'text-white/45 hover:text-white/85 hover:bg-white/[0.06]'
           }`}
         >
-          <Pin size={11} className={isPinned ? "rotate-45" : ""} />
+          <Pin size={11} className={isPinned ? 'rotate-45' : ''} />
         </button>
       </div>
 
-      {/* Tengah: Micro Pill-Tabs (Music | Today | AI) */}
-      <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-full border border-white/6">
-        {[
-          { id: 'music', label: 'Music' },
-          { id: 'today', label: 'Today' },
-          { id: 'ai', label: 'AI' },
-        ].map((tab) => {
+      {/* Segmented Tabs (Music | Today | AI) */}
+      <div
+        role="tablist"
+        aria-label="Navigasi tab"
+        className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-lg border border-white/[0.06]"
+      >
+        {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => handleTabChange(tab.id)}
-              className={`relative px-2.5 py-0.5 rounded-full text-[10.5px] font-sans font-semibold transition-colors cursor-pointer ${isActive ? "text-black" : "text-white/55 hover:text-white/85"
-                }`}
+              className={`relative inline-flex items-center justify-center px-2.5 py-0.5 rounded-md text-[11px] font-sans font-medium transition-colors cursor-pointer ${
+                isActive ? 'text-white' : 'text-white/52 hover:text-white/85'
+              }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTabPill"
                   transition={{
-                    type: "spring",
+                    type: 'spring',
                     stiffness: 380,
                     damping: 30,
                     mass: 0.8,
                   }}
-                  className="absolute inset-0 bg-white rounded-full"
+                  className="absolute inset-0 bg-white/[0.13] rounded-md"
                 />
               )}
               <span className="relative z-10">{tab.label}</span>
@@ -135,8 +145,8 @@ function HeaderBase({
         })}
       </div>
 
-      {/* Kanan: Tanggal & Jam */}
-      <span className="font-mono text-white/60 text-[10.5px]">
+      {/* Tanggal & Jam */}
+      <span className="font-sans tabular-nums text-[11px] text-white/56">
         {dateHeaderString}
       </span>
     </div>

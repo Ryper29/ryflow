@@ -115,20 +115,17 @@ export default function App() {
   // Interaktif hanya jika notch terbuka DAN pointer di atas notch
   useEffect(() => {
     const interactive = (isHovered || isPinned || isInputFocused) && isPointerInside;
-    console.log('[T1-IPC] setIgnoreMouseEvents', JSON.stringify({ ignore: !interactive, forward: true, isPointerInside }));
     window.electronAPI?.setIgnoreMouseEvents(!interactive, { forward: true });
   }, [isHovered, isPinned, isInputFocused, isPointerInside]);
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   const handleMouseEnter = () => {
-    console.log('[T1-EVENT] mouseenter');
     clearTimeout(closeTimer.current);
     setIsPointerInside(true);
   };
 
   const handleMouseLeave = () => {
-    console.log('[T1-EVENT] mouseleave');
     setIsPointerInside(false);
     clearTimeout(closeTimer.current);
     closeTimer.current = setTimeout(() => setIsHovered(false), CLOSE_DELAY_MS);
@@ -256,7 +253,7 @@ export default function App() {
                       >
                         <div className="col-span-5 flex flex-col gap-2.5 pr-3 border-r border-white/[0.07]">
                           <div className="flex items-center gap-3">
-                            <div className="relative w-11 h-11 rounded-lg overflow-hidden shadow-md shrink-0 bg-white/6 ring-1 ring-white/10 flex items-center justify-center">
+                            <div className="relative w-11 h-11 rounded-lg overflow-hidden shadow-md shrink-0 bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center">
                               {displayCover ? (
                                 <img
                                   src={displayCover}
@@ -264,77 +261,85 @@ export default function App() {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <Disc size={22} className="text-white/40" />
+                                <Disc size={20} className="text-white/44" />
                               )}
                             </div>
                             <div className="overflow-hidden">
-                              <h3 className="text-[13px] font-sans font-bold text-white truncate leading-tight">
+                              <h3 className="text-[13px] font-sans font-semibold text-white/95 truncate leading-tight">
                                 {media.title}
                               </h3>
-                              <p className="text-[11.5px] font-sans text-white/55 truncate mt-0.5">
+                              <p className="text-[12px] font-sans text-white/60 truncate mt-0.5">
                                 {media.artist}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 text-[10px] font-mono text-white/45">
-                            <span className="w-7">{formatTime(media.position)}</span>
+                          <div className="flex items-center gap-2 text-[11px] font-sans tabular-nums text-white/52">
+                            <span className="w-8">{formatTime(media.position)}</span>
                             <div
                               onClick={handleSeek}
-                              className="group flex-1 h-1 hover:h-1.5 bg-white/15 rounded-full overflow-hidden cursor-pointer transition-all"
+                              className="group flex-1 py-2 -my-2 flex items-center cursor-pointer"
                             >
-                              <motion.div
-                                className="h-full bg-white/90 group-hover:bg-white rounded-full"
-                                animate={{
-                                  width: `${Math.min(
-                                    100,
-                                    (media.position / Math.max(1, media.duration)) * 100
-                                  )}%`,
-                                }}
-                                transition={{ ease: "linear", duration: 0.25 }}
-                              />
+                              <div className="w-full h-1 group-hover:h-1.5 bg-white/15 rounded-full overflow-hidden transition-all">
+                                <motion.div
+                                  className="h-full bg-white/90 group-hover:bg-white rounded-full"
+                                  animate={{
+                                    width: `${Math.min(
+                                      100,
+                                      (media.position / Math.max(1, media.duration)) * 100
+                                    )}%`,
+                                  }}
+                                  transition={{ ease: "linear", duration: 0.25 }}
+                                />
+                              </div>
                             </div>
-                            <span className="w-8 text-right">
+                            <span className="w-9 text-right">
                               -{formatTime(media.duration - media.position)}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-center gap-5 pt-0.5">
                             <button
+                              type="button"
+                              aria-label="Lagu sebelumnya"
                               onClick={() => triggerControl('prev')}
-                              className="text-white/60 hover:text-white transition transform active:scale-90 cursor-pointer"
+                              className="inline-flex items-center justify-center p-1 rounded-md text-white/60 hover:text-white transition transform active:scale-90 cursor-pointer"
                             >
-                              <SkipBack size={16} />
+                              <SkipBack size={15} />
                             </button>
                             <button
+                              type="button"
+                              aria-label={media.isPlaying ? 'Jeda' : 'Putar'}
                               onClick={() => triggerControl('playpause')}
-                              className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-sm cursor-pointer"
+                              className="w-7 h-7 rounded-full bg-white/95 text-[#0a0a0c] hover:bg-white inline-flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-sm cursor-pointer"
                             >
                               {media.isPlaying ? (
-                                <Pause size={14} fill="black" />
+                                <Pause size={13} fill="currentColor" />
                               ) : (
-                                <Play size={14} fill="black" className="ml-0.5" />
+                                <Play size={13} fill="currentColor" className="ml-0.5" />
                               )}
                             </button>
                             <button
+                              type="button"
+                              aria-label="Lagu berikutnya"
                               onClick={() => triggerControl('next')}
-                              className="text-white/60 hover:text-white transition transform active:scale-90 cursor-pointer"
+                              className="inline-flex items-center justify-center p-1 rounded-md text-white/60 hover:text-white transition transform active:scale-90 cursor-pointer"
                             >
-                              <SkipForward size={16} />
+                              <SkipForward size={15} />
                             </button>
                           </div>
                         </div>
 
                         <div className="col-span-7 h-28 flex flex-col justify-center overflow-hidden relative pl-1">
                           {lyricStatus === 'loading' && (
-                            <div className="flex items-center gap-2 text-xs font-sans text-white/40">
+                            <div className="flex items-center gap-2 text-[12px] font-sans text-white/48">
                               <Loader2 size={13} className="animate-spin text-white/60" />
                               <span>Memuat lirik...</span>
                             </div>
                           )}
 
                           {lyricStatus === 'not_found' && (
-                            <p className="text-xs font-sans font-medium text-white/35">
+                            <p className="text-[12px] font-sans text-white/48">
                               Lirik tidak tersedia
                             </p>
                           )}
@@ -349,13 +354,13 @@ export default function App() {
                                 transition={{ duration: 0.22, ease: "easeOut" }}
                                 className="flex flex-col justify-center gap-1.5 font-sans"
                               >
-                                <p className="text-[11.5px] font-medium text-white/30 line-clamp-1 leading-normal">
+                                <p className="text-[12px] font-medium text-white/44 line-clamp-1 leading-normal">
                                   {prevLine || "\u00A0"}
                                 </p>
-                                <p className="text-[13.5px] font-bold text-white leading-snug line-clamp-2">
+                                <p className="text-[14px] font-semibold text-white/95 tracking-[-0.01em] leading-snug line-clamp-2">
                                   {currentLine}
                                 </p>
-                                <p className="text-[11.5px] font-medium text-white/35 line-clamp-1 leading-normal">
+                                <p className="text-[12px] font-medium text-white/50 line-clamp-1 leading-normal">
                                   {nextLine || "\u00A0"}
                                 </p>
                               </motion.div>
@@ -363,10 +368,10 @@ export default function App() {
                           )}
 
                           {lyricStatus === 'plain' && (
-                            <div className="h-28 overflow-y-auto pr-2 font-sans">
-                              <p className="text-[10px] text-white/30 mb-1.5">Lirik tidak tersinkron</p>
+                            <div className="h-28 overflow-y-auto pr-2 font-sans ryflow-scroll select-text">
+                              <p className="text-[11px] text-white/48 mb-1.5">Lirik tidak tersinkron</p>
                               {lyrics.map((l, i) => (
-                                <p key={i} className="text-[12px] text-white/70 leading-snug mb-1">{l.text}</p>
+                                <p key={i} className="text-[12px] text-white/78 leading-relaxed mb-1">{l.text}</p>
                               ))}
                             </div>
                           )}
@@ -386,47 +391,43 @@ export default function App() {
                         className="w-full grid grid-cols-12 gap-4 items-center h-full py-0.5"
                       >
                         <div className="col-span-5 flex flex-col justify-between h-full pr-3 border-r border-white/[0.07]">
-                          <div className="flex items-center justify-between bg-white/4 border border-white/6 rounded-xl px-3 py-2">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-white/[0.07] flex items-center justify-center text-white/85">
-                                <WeatherIcon size={18} />
+                          <div className="flex items-center gap-2.5 pt-0.5">
+                            <WeatherIcon size={18} className="text-white/75 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-[15px] font-sans font-semibold tabular-nums text-white/95 leading-none">
+                                  {weather.temp}°C
+                                </span>
+                                <span className="text-[12px] font-sans font-medium text-white/64">
+                                  {weatherLabel}
+                                </span>
                               </div>
-                              <div>
-                                <div className="flex items-baseline gap-1.5">
-                                  <span className="text-base font-mono font-medium text-white leading-none">
-                                    {weather.temp}°C
-                                  </span>
-                                  <span className="text-[11px] font-sans font-medium text-white/60">
-                                    {weatherLabel}
-                                  </span>
-                                </div>
-                                <p className="text-[10px] font-sans text-white/40 truncate max-w-33.75 mt-0.5">
-                                  {weather.city} • Lembap {weather.humidity}%
-                                </p>
-                              </div>
+                              <p className="text-[11px] font-sans tabular-nums text-white/48 truncate mt-1">
+                                {weather.city} • Lembap {weather.humidity}%
+                              </p>
                             </div>
                           </div>
 
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-sans font-medium text-white/40 uppercase tracking-wider">
-                              Minggu Ini
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] font-sans font-medium text-white/48">
+                              Minggu ini
                             </span>
                             <div className="grid grid-cols-7 gap-1">
                               {weekDays.map((d, index) => (
                                 <div
                                   key={index}
-                                  className={`flex flex-col items-center justify-center py-1.5 rounded-lg border transition ${d.isToday
-                                    ? "bg-white text-black border-white font-bold shadow-sm"
-                                    : "bg-white/3 text-white/60 border-white/5"
+                                  className={`flex flex-col items-center justify-center py-1 rounded-md transition ${d.isToday
+                                    ? "bg-white/[0.14] text-white font-semibold"
+                                    : "text-white/56"
                                     }`}
                                 >
                                   <span
-                                    className={`text-[9px] font-sans ${d.isToday ? "text-black/70 font-semibold" : "text-white/35"
+                                    className={`text-[11px] font-sans leading-none ${d.isToday ? "text-white/88 font-medium" : "text-white/44"
                                       }`}
                                   >
                                     {d.label}
                                   </span>
-                                  <span className="text-[11px] font-mono mt-0.5 leading-none">
+                                  <span className="text-[11px] font-sans tabular-nums mt-1 leading-none">
                                     {d.dateNum}
                                   </span>
                                 </div>
@@ -437,47 +438,50 @@ export default function App() {
 
                         <div className="col-span-7 flex flex-col justify-between h-full pl-1 overflow-hidden">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-sans font-semibold text-white/75">
-                              Agenda Hari Ini
+                            <span className="text-[12px] font-sans font-medium text-white/80">
+                              Agenda hari ini
                             </span>
-                            <span className="text-[10px] font-mono text-white/40">
+                            <span className="text-[11px] font-sans tabular-nums text-white/48">
                               {completedTodos}/{todos.length} selesai
                             </span>
                           </div>
 
-                          <div className="flex-1 overflow-y-auto my-1.5 pr-1 flex flex-col gap-1 max-h-17">
+                          <div className="flex-1 overflow-y-auto my-1.5 pr-1 flex flex-col gap-0.5 max-h-17 ryflow-scroll">
                             {todos.length === 0 ? (
-                              <p className="text-[11px] font-sans text-white/30 my-auto">
-                                Belum ada agenda. Ketik di bawah untuk menambah.
+                              <p className="text-[12px] font-sans text-white/48 my-auto">
+                                Belum ada agenda
                               </p>
                             ) : (
                               todos.map((item) => (
                                 <div
                                   key={item.id}
-                                  className="group flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/3 hover:bg-white/6 transition"
+                                  className="group flex items-center justify-between gap-2 px-1.5 py-1 rounded-md hover:bg-white/[0.05] transition"
                                 >
                                   <button
+                                    type="button"
                                     onClick={() => toggleTodo(item.id)}
                                     className="flex items-center gap-2 text-left flex-1 overflow-hidden cursor-pointer"
                                   >
                                     <div
-                                      className={`w-3.5 h-3.5 rounded-sm flex items-center justify-center shrink-0 border transition ${item.done
-                                        ? "bg-white border-white text-black"
+                                      className={`w-3.5 h-3.5 rounded-[4px] inline-flex items-center justify-center shrink-0 border transition ${item.done
+                                        ? "bg-white/90 border-white/90 text-[#0a0a0c]"
                                         : "border-white/30 hover:border-white/60"
                                         }`}
                                     >
                                       {item.done && <Check size={10} strokeWidth={3} />}
                                     </div>
                                     <span
-                                      className={`text-[11.5px] font-sans truncate transition ${item.done ? "line-through text-white/30" : "text-white/85"
+                                      className={`text-[12px] font-sans truncate transition ${item.done ? "line-through text-white/40" : "text-white/88"
                                         }`}
                                     >
                                       {item.text}
                                     </span>
                                   </button>
                                   <button
+                                    type="button"
+                                    aria-label="Hapus agenda"
                                     onClick={() => deleteTodo(item.id)}
-                                    className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-white/80 transition cursor-pointer"
+                                    className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 inline-flex items-center justify-center p-0.5 text-white/40 hover:text-white/85 transition cursor-pointer"
                                   >
                                     <Trash2 size={11} />
                                   </button>
@@ -493,12 +497,13 @@ export default function App() {
                               onChange={(e) => setNewTodo(e.target.value)}
                               onFocus={() => setIsInputFocused(true)}
                               onBlur={() => setIsInputFocused(false)}
-                              placeholder="Tambah agenda baru lalu tekan Enter..."
-                              className="flex-1 bg-white/5 border border-white/8 focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
+                              placeholder="Tambah agenda..."
+                              className="flex-1 bg-white/[0.04] border border-white/[0.08] focus:border-white/25 rounded-lg px-2.5 py-1 text-[12px] font-sans text-white placeholder-white/40 outline-none transition"
                             />
                             <button
                               type="submit"
-                              className="p-1.5 rounded-lg bg-white text-black hover:bg-white/90 transition cursor-pointer shrink-0"
+                              aria-label="Tambah agenda"
+                              className="p-1.5 rounded-lg bg-white/12 hover:bg-white/20 text-white/90 inline-flex items-center justify-center transition cursor-pointer shrink-0"
                             >
                               <Plus size={12} />
                             </button>
@@ -520,35 +525,31 @@ export default function App() {
                       >
                         {/* KONDISI 1: BELUM ADA API KEY ATAU SEDANG EDIT KEY */}
                         {!aiApiKey || isEditingKey ? (
-                          <div className="my-auto flex flex-col gap-1.5 px-2">
+                          <div className="my-auto flex flex-col gap-2 px-1">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-md bg-white/8 flex items-center justify-center text-white/85">
-                                  <KeyRound size={13} />
-                                </div>
-                                <div>
-                                  <p className="text-[11.5px] font-sans font-semibold text-white/90 leading-none">
-                                    Hubungkan API Key AI
-                                  </p>
-                                  <p className="text-[10px] font-sans text-white/40 mt-0.5">
-                                    Gemini (<code className="font-mono text-white/60">AQ...</code>/<code className="font-mono text-white/60">AIza...</code>), Grok (<code className="font-mono text-white/60">grok_...</code>), OpenAI (<code className="font-mono text-white/60">sk-...</code>), Anthropic (<code className="font-mono text-white/60">sk-ant-...</code>)
-                                  </p>
-                                </div>
+                              <div>
+                                <p className="text-[12px] font-sans font-semibold text-white/92 leading-none">
+                                  Hubungkan API key AI
+                                </p>
+                                <p className="text-[11px] font-sans text-white/48 mt-1">
+                                  Mendukung Gemini, Grok, Groq, OpenAI, dan Anthropic.
+                                </p>
                               </div>
                               {aiApiKey && (
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setIsEditingKey(false);
                                     setKeyValidationError('');
                                   }}
-                                  className="text-[10px] font-sans text-white/45 hover:text-white cursor-pointer"
+                                  className="text-[11px] font-sans text-white/56 hover:text-white cursor-pointer"
                                 >
                                   Batal
                                 </button>
                               )}
                             </div>
 
-                            <form onSubmit={handleSaveApiKey} className="flex items-center gap-1.5 mt-0.5">
+                            <form onSubmit={handleSaveApiKey} className="flex items-center gap-1.5">
                               <input
                                 type="password"
                                 value={keyInput}
@@ -558,21 +559,21 @@ export default function App() {
                                 }}
                                 onFocus={() => setIsInputFocused(true)}
                                 onBlur={() => setIsInputFocused(false)}
-                                placeholder="Tempel API Key lalu tekan Enter..."
-                                className={`flex-1 bg-white/5 border ${keyValidationError ? 'border-rose-500/50' : 'border-white/8 focus:border-white/25'
-                                  } rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-white placeholder-white/30 outline-none transition`}
+                                placeholder="Tempel API key..."
+                                className={`flex-1 bg-white/[0.04] border ${keyValidationError ? 'border-red-400/50' : 'border-white/[0.08] focus:border-white/25'
+                                  } rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-white placeholder-white/40 outline-none transition`}
                               />
                               <button
                                 type="submit"
-                                className="px-3 py-1.5 rounded-lg bg-white text-black text-[11px] font-sans font-semibold hover:bg-white/90 transition cursor-pointer shrink-0"
+                                className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/92 text-[#0a0a0c] text-[12px] font-sans font-semibold hover:bg-white transition cursor-pointer shrink-0"
                               >
                                 Simpan
                               </button>
                             </form>
 
                             {keyValidationError && (
-                              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] font-sans">
-                                <AlertCircle size={11} className="shrink-0 text-rose-400" />
+                              <div className="flex items-center gap-1.5 text-red-400/90 text-[11px] font-sans">
+                                <AlertCircle size={12} className="shrink-0" />
                                 <span className="truncate">{keyValidationError}</span>
                               </div>
                             )}
@@ -582,12 +583,12 @@ export default function App() {
                           <>
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                                {/* Klik badge untuk mengganti model Gemini (2.5-flash / 2.0-flash / 1.5-flash / 1.5-pro) */}
+                                {/* Klik untuk mengganti model Gemini */}
                                 <button
                                   type="button"
                                   onClick={activeProvider.id === 'gemini' ? cycleGeminiModel : undefined}
                                   title={activeProvider.id === 'gemini' ? 'Klik untuk ganti model Gemini' : activeProvider.name}
-                                  className={`px-2 py-0.5 rounded-md bg-white/[0.07] border border-white/6 text-[10px] font-mono text-white/75 shrink-0 ${activeProvider.id === 'gemini' ? 'hover:bg-white/[0.14] hover:text-white cursor-pointer transition' : ''
+                                  className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-white/[0.06] text-[11px] font-sans font-medium text-white/78 shrink-0 ${activeProvider.id === 'gemini' ? 'hover:bg-white/[0.12] hover:text-white cursor-pointer transition' : ''
                                     }`}
                                 >
                                   {activeProvider.name}
@@ -595,22 +596,24 @@ export default function App() {
 
                                 {media.hasMedia && (
                                   <button
+                                    type="button"
                                     onClick={() => askAi(`Jelaskan secara singkat makna lagu "${media.title}" dari ${media.artist}`)}
-                                    className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                    className="inline-flex items-center justify-center px-2 py-0.5 rounded-md hover:bg-white/[0.07] text-[11px] font-sans text-white/58 hover:text-white transition cursor-pointer shrink-0"
                                   >
-                                    🎵 Makna lagu ini
+                                    Makna lagu
                                   </button>
                                 )}
 
                                 <button
+                                  type="button"
                                   onClick={() => askAi(
                                     hasPending
                                       ? 'Dari agenda yang belum selesai, pilih 2-3 prioritas terpenting untuk dikerjakan lebih dulu. Urutkan dari yang utama, masing-masing satu kalimat.'
                                       : 'Aku belum punya agenda yang tertunda. Sarankan 2-3 hal ringan yang layak kukerjakan hari ini.'
                                   )}
-                                  className="px-2 py-0.5 rounded-md bg-white/4 hover:bg-white/9 border border-white/6 text-[10px] font-sans text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                                  className="inline-flex items-center justify-center px-2 py-0.5 rounded-md hover:bg-white/[0.07] text-[11px] font-sans text-white/58 hover:text-white transition cursor-pointer shrink-0"
                                 >
-                                  ⚡ Fokus hari ini
+                                  Fokus hari ini
                                 </button>
                               </div>
 
@@ -618,13 +621,17 @@ export default function App() {
                                 {aiResponse && (
                                   <>
                                     <button
+                                      type="button"
+                                      aria-label="Salin jawaban"
                                       onClick={handleCopyAi}
                                       title="Salin jawaban"
-                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
+                                      className="inline-flex items-center justify-center p-1 rounded-md text-white/44 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
                                     >
                                       {copiedAi ? <Check size={11} /> : <Copy size={11} />}
                                     </button>
                                     <button
+                                      type="button"
+                                      aria-label="Bersihkan jawaban"
                                       onClick={() => {
                                         setAiResponse('');
                                         setAiResponseTruncated(false);
@@ -632,16 +639,18 @@ export default function App() {
                                         setAiError('');
                                       }}
                                       title="Bersihkan"
-                                      className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
+                                      className="inline-flex items-center justify-center p-1 rounded-md text-white/44 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
                                     >
                                       <RotateCcw size={11} />
                                     </button>
                                   </>
                                 )}
                                 <button
+                                  type="button"
+                                  aria-label="Ganti API key"
                                   onClick={handleRemoveApiKey}
-                                  title="Ganti API Key"
-                                  className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/6 transition cursor-pointer"
+                                  title="Ganti API key"
+                                  className="inline-flex items-center justify-center p-1 rounded-md text-white/44 hover:text-white hover:bg-white/[0.06] transition cursor-pointer"
                                 >
                                   <KeyRound size={11} />
                                 </button>
@@ -649,47 +658,48 @@ export default function App() {
                             </div>
 
                             {/* Area Jawaban AI */}
-                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/3 border border-white/5 overflow-y-auto max-h-17 flex flex-col">
+                            <div className="flex-1 my-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.025] border border-white/[0.06] overflow-y-auto max-h-17 flex flex-col ryflow-scroll select-text">
                               <div className="my-auto">
                                 {aiLoading ? (
-                                  <div className="flex items-center gap-2 text-[11px] font-sans text-white/45">
+                                  <div className="flex items-center gap-2 text-[12px] font-sans text-white/52">
                                     <Loader2 size={12} className="animate-spin text-white/70" />
                                     <span>Sedang berpikir...</span>
                                   </div>
                                 ) : aiError ? (
-                                  <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-rose-500/10 border border-rose-500/20">
+                                  <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5 overflow-hidden">
-                                      <AlertCircle size={12} className="text-rose-400 shrink-0" />
-                                      <p className="text-[10.5px] font-sans text-rose-300 leading-snug truncate">
+                                      <AlertCircle size={12} className="text-red-400/90 shrink-0" />
+                                      <p className="text-[11px] font-sans text-red-400/90 leading-snug truncate">
                                         {aiError}
                                       </p>
                                     </div>
                                     {aiError.includes('API Key') && (
                                       <button
+                                        type="button"
                                         onClick={handleRemoveApiKey}
-                                        className="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10px] font-sans font-medium shrink-0 cursor-pointer transition"
+                                        className="text-[11px] font-sans font-medium text-white/68 hover:text-white hover:underline underline-offset-2 shrink-0 cursor-pointer transition"
                                       >
-                                        Ganti Key
+                                        Ganti key
                                       </button>
                                     )}
                                   </div>
                                 ) : aiResponse ? (
                                   <div className="flex flex-col gap-0.5">
                                     {aiLastQuestion && (
-                                      <p className="text-[10px] font-sans text-white/35 truncate">
+                                      <p className="text-[11px] font-sans text-white/48 truncate">
                                         Q: {aiLastQuestion}
                                       </p>
                                     )}
-                                    <p className="text-[11.5px] font-sans text-white/90 leading-relaxed whitespace-pre-wrap">
+                                    <p className="text-[12px] font-sans text-white/92 leading-relaxed whitespace-pre-wrap">
                                       {aiResponse}
                                     </p>
                                     {aiResponseTruncated && (
-                                      <p className="text-[9px] font-sans text-amber-200/65">(jawaban terpotong)</p>
+                                      <p className="text-[11px] font-sans text-amber-200/75">(jawaban terpotong)</p>
                                     )}
                                   </div>
                                 ) : (
-                                  <p className="text-[11px] font-sans text-white/30">
-                                    Tanya apa saja, kode singkat, atau klik tombol di atas untuk membedah lagu yang sedang diputar.
+                                  <p className="text-[12px] font-sans text-white/48">
+                                    Tanyakan sesuatu atau pilih aksi di atas.
                                   </p>
                                 )}
                               </div>
@@ -703,13 +713,14 @@ export default function App() {
                                 onChange={(e) => setAiPrompt(e.target.value)}
                                 onFocus={() => setIsInputFocused(true)}
                                 onBlur={() => setIsInputFocused(false)}
-                                placeholder="Ketik pertanyaan lalu tekan Enter..."
-                                className="flex-1 bg-white/5 border border-white/8 focus:border-white/25 rounded-lg px-2.5 py-1 text-[11px] font-sans text-white placeholder-white/30 outline-none transition"
+                                placeholder="Tanya sesuatu..."
+                                className="flex-1 bg-white/[0.04] border border-white/[0.08] focus:border-white/25 rounded-lg px-2.5 py-1 text-[12px] font-sans text-white placeholder-white/40 outline-none transition"
                               />
                               <button
                                 type="submit"
                                 disabled={aiLoading}
-                                className="p-1.5 rounded-lg bg-white text-black hover:bg-white/90 disabled:opacity-40 transition cursor-pointer shrink-0"
+                                aria-label="Kirim pertanyaan"
+                                className="p-1.5 rounded-lg bg-white/12 hover:bg-white/20 text-white/90 inline-flex items-center justify-center disabled:opacity-40 transition cursor-pointer shrink-0"
                               >
                                 <Send size={12} />
                               </button>
