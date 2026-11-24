@@ -7,6 +7,7 @@ import {
   cleanChannelArtist,
 } from '../services/lyrics.js';
 import { INITIAL_MEDIA, mergeMediaUpdate } from '../services/mediaState.js';
+import { createLyricsCache } from '../services/lyricsCache.js';
 
 const STALE_COVER_MS = 2000;
 const FETCH_DEBOUNCE_MS = 400;
@@ -25,7 +26,7 @@ export function useMedia({ interpolate = true } = {}) {
   const [fallbackCover, setFallbackCover] = useState(null);
   const lastFetchedTrack = useRef('');
   const hasOwnCoverRef = useRef(false);
-  const lyricsCacheRef = useRef(new Map());
+  const lyricsCacheRef = useRef(createLyricsCache());
 
   // Subscribe to Electron media updates
   useEffect(() => {
@@ -162,7 +163,6 @@ export function useMedia({ interpolate = true } = {}) {
         }
 
         if (signal.aborted) return;
-        lyricsCacheRef.current.set(trackKey, { status: 'not_found', lyrics: [] });
         setLyricStatus('not_found');
       } catch (err) {
         if (err.name !== 'AbortError' && !signal.aborted) {
