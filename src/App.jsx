@@ -22,6 +22,7 @@ import { useMedia } from './hooks/useMedia';
 import { useWeather } from './hooks/useWeather';
 import { useTodos } from './hooks/useTodos';
 import { useAiAgent } from './hooks/useAiAgent';
+import { getActiveLyricIndex } from './services/lyrics';
 
 const TAB_ORDER = ['music', 'today', 'ai'];
 const CLOSE_DELAY_MS = 250;
@@ -140,9 +141,7 @@ export default function App() {
 
   const togglePin = useCallback(() => setIsPinned((p) => !p), []);
 
-  const activeLyricIndex = lyrics.reduce((acc, curr, idx) => {
-    return (media.position + 0.25) >= curr.time ? idx : acc;
-  }, -1);
+  const activeLyricIndex = getActiveLyricIndex(lyrics, media.position);
 
   const prevLine = activeLyricIndex > 0 ? lyrics[activeLyricIndex - 1]?.text : "";
   const currentLine = activeLyricIndex >= 0 ? (lyrics[activeLyricIndex]?.text || "• • •") : "• • •";

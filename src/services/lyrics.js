@@ -21,6 +21,15 @@ export function parseLrc(lrcText) {
   return parsed.sort((a, b) => a.time - b.time);
 }
 
+export function getActiveLyricIndex(lyrics, position, offset = 0.25) {
+  if (!Array.isArray(lyrics) || lyrics.length === 0) return -1;
+  const target = position + offset;
+  return lyrics.reduce((acc, curr, idx) => {
+    if (typeof curr?.time !== 'number') return acc;
+    return target >= curr.time ? idx : acc;
+  }, -1);
+}
+
 const normKey = (s) =>
   String(s ?? '').replace(/\s+/g, ' ').trim()
     .normalize('NFKD')
