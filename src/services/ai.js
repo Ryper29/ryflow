@@ -121,7 +121,7 @@ async function callGemini({ cleanKey, prompt, systemPrompt, geminiModel, discove
   for (const modelName of modelsToTry) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(cleanKey)}`;
     const thinkingConfig = getGeminiThinkingConfig(modelName);
-    const generationConfig = { temperature: 0.6, maxOutputTokens: 1024 };
+    const generationConfig = { temperature: 0.6, maxOutputTokens: 2048 };
     if (thinkingConfig) generationConfig.thinkingConfig = thinkingConfig;
 
     const res = await fetch(url, {
