@@ -657,22 +657,23 @@ Menyelesaikan penyatuan modularitas proyek Ryflow secara menyeluruh: menghubungk
 **2. Ketahanan Bridge GSMTC (`T2`):**
 - Menambahkan `windowsHide: true`, handler `spawn` `error`, restart backoff terkendali (`2 -> 4 -> 8 -> 16 dtk`, reset setelah sehat `>30 dtk`), dan retry `$manager` di `electron/media-bridge.ps1`.
 
-**3. Akurasi Lirik, Cover & Metadata (`T3`, `T7`, `T5`):**
+**3. Akurasi Lirik, Cover & Metadata (`T3`, `T7`, `T5`, `F1`, `F2`):**
 - Mengubah posisi bridge menjadi float 2 desimal (`position`), mengatur `activeLyricIndex` mulai dari `-1` (`• • •` saat intro), dan menampilkan lirik plain statis yang dapat digulir tanpa timestamp palsu (`Lirik tidak tersinkron`).
-- Menambahkan retry thumbnail maks 5 tick dan pengiriman delta/heartbeat tiap 40 emisi di bridge; menahan cover lama maksimal 2 detik sebelum fallback iTunes (tertunda 2200 ms, dilewati bila cover sendiri sudah ada), fetch paralel `Promise.allSettled`, debounce 400 ms, dan cache lirik di memori.
+- Mengekstrak `getActiveLyricIndex` ke `src/services/lyrics.js` dengan cakupan unit test (`tests/lyrics.test.js`).
+- Menambahkan retry thumbnail maks 5 tick dan pengiriman delta/heartbeat tiap 40 emisi di bridge; menahan cover lama maksimal 2 detik sebelum fallback iTunes (tertunda 2200 ms, dilewati bila cover sendiri sudah ada), fetch paralel `Promise.allSettled`, debounce 400 ms, dan cache lirik terbatas (`createLyricsCache(50)` di `src/services/lyricsCache.js`) tanpa menyimpan `not_found`.
 - Mengekstrak fungsi murni `mergeMediaUpdate` (`src/services/mediaState.js`) dengan bail-out update IPC, membatasi interpolasi posisi hanya saat expanded di tab Music, serta memoize `Header` dengan prop `isPlaying`.
 
-**4. Arsitektur Validator, Clock, UI & Keamanan (`T4`, `T6`, `T8`, `T9`, `T10`):**
+**4. Arsitektur Validator, Clock, UI & Keamanan (`T4`, `T6`, `T8`, `T9`, `T10`, `F3`):**
 - Memindahkan validator IPC ke `electron/validators.cjs` sebagai sumber tunggal untuk `electron/main.cjs` dan `tests/media.test.js`, serta menghapus duplikat `src/services/media.js`.
 - Memindahkan perhitungan kalender ke `src/services/calendar.js`, memperbarui `useClock` agar merender per menit (`dayKey`), dan menghapus kode mati `fullDateString`/`fullTimeString` di `useClock`.
 - Mengganti animasi waveform ke CSS keyframes (`ryflow-eq` + `prefers-reduced-motion`) dan menghapus `backdrop-blur-2xl` yang tidak efektif di window transparan.
 - Menghapus Fraunces (tidak terpakai), membundel font lokal (`@fontsource-variable/plus-jakarta-sans` & `@fontsource/dm-mono`), dan memperketat header CSP (`object-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-src 'none'`, `img-src` ke `mzstatic.com`).
-- Memperbarui jawaban AI (thinking config per keluarga model Gemini, container scroll `my-auto`, prompt `"Fokus hari ini"` kontekstual, aturan tanpa Markdown), menyelaraskan `README.md`, `docs/CHANGES.md`, dan bump versi ke `0.6.2`.
+- Memperbarui jawaban AI (thinking config per keluarga model Gemini, `maxOutputTokens: 2048`, container scroll `my-auto`, prompt `"Fokus hari ini"` kontekstual, aturan tanpa Markdown), menyelaraskan `README.md`, `docs/CHANGES.md`, dan bump versi ke `0.6.2`.
 
 **Pengukuran Performa & Quality Gate:**
 - Baseline Fase 0 (notch menciut, musik aktif): browser ~0,15%, renderer ~0,04%, GPU ~0,02%.
 - Pengukuran bridge C1a (60 dtk dengan Spotify aktif, notch menciut): 1 proses `media-bridge.ps1`, `0,39` dtk CPU (`0,65%` satu core), working set `102,89 MB`.
-- Pengujian otomatis: `npm run test` (`108/108` test di 6 file lulus), `npm run lint` (`0` warning, `0` error), `npm run build` & `npm run electron:build` lulus.
+- Pengujian otomatis: `npm run test` (`119/119` test di 7 file lulus), `npm run lint` (`0` warning, `0` error), `npm run build` & `npm run electron:build` lulus.
 
 ---
 
