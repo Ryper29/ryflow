@@ -652,7 +652,7 @@ Menyelesaikan penyatuan modularitas proyek Ryflow secara menyeluruh: menghubungk
 
 **1. Manajemen Window & Click-Through (`T1`, `T1b`, `T1c`):**
 - Menjadikan efek `(isExpanded && isPointerInside)` sebagai satu sumber kebenaran `setIgnoreMouseEvents` pada `src/App.jsx` dan memusatkan posisi window memakai `display.bounds` (`electron/main.cjs`).
-- Mengizinkan preamble Vite & HMR pada CSP mode dev tanpa mengubah produksi, serta mengekstrak konstanta `CLOSE_DELAY_MS = 250`.
+- Mengizinkan preamble Vite & HMR pada CSP mode dev tanpa mengubah produksi, mengekstrak konstanta `CLOSE_DELAY_MS = 250`, serta mempertahankan guard permanen `EPIPE` dan flag env `RYFLOW_DEVTOOLS` di `electron/main.cjs`.
 
 **2. Ketahanan Bridge GSMTC (`T2`):**
 - Menambahkan `windowsHide: true`, handler `spawn` `error`, restart backoff terkendali (`2 -> 4 -> 8 -> 16 dtk`, reset setelah sehat `>30 dtk`), dan retry `$manager` di `electron/media-bridge.ps1`.
@@ -670,10 +670,22 @@ Menyelesaikan penyatuan modularitas proyek Ryflow secara menyeluruh: menghubungk
 - Menghapus Fraunces (tidak terpakai), membundel font lokal (`@fontsource-variable/plus-jakarta-sans` & `@fontsource/dm-mono`), dan memperketat header CSP (`object-src 'none'`, `base-uri 'none'`, `form-action 'none'`, `frame-src 'none'`, `img-src` ke `mzstatic.com`).
 - Memperbarui jawaban AI (thinking config per keluarga model Gemini, `maxOutputTokens: 2048`, container scroll `my-auto`, prompt `"Fokus hari ini"` kontekstual, aturan tanpa Markdown), menyelaraskan `README.md`, `docs/CHANGES.md`, dan bump versi ke `0.6.2`.
 
-**Pengukuran Performa & Quality Gate:**
+**Pengukuran Performa, Diagnostik & Quality Gate:**
 - Baseline Fase 0 (notch menciut, musik aktif): browser ~0,15%, renderer ~0,04%, GPU ~0,02%.
 - Pengukuran bridge C1a (60 dtk dengan Spotify aktif, notch menciut): 1 proses `media-bridge.ps1`, `0,39` dtk CPU (`0,65%` satu core), working set `102,89 MB`.
+- Diagnostik bug dua lapisan (`F4`, tanpa perubahan kode): dengan harness `vite build` + `vite preview`, `pre-v0.6.2` mencatat `bugCount=5` (`w43Opacity: "1"` pada `exit_race_9`), `2c782a1` mencatat `bugCount=0`, dan `HEAD` mencatat `bugCount=3` (`w43Opacity: "0"` pada kondisi `settled`).
 - Pengujian otomatis: `npm run test` (`119/119` test di 7 file lulus), `npm run lint` (`0` warning, `0` error), `npm run build` & `npm run electron:build` lulus.
+
+**File yang diubah/ditambah:**
+- `electron/main.cjs` (CSP header, guard `EPIPE`, `RYFLOW_DEVTOOLS`, backoff bridge, `display.bounds`, `validators.cjs`)
+- `electron/media-bridge.ps1` (retry `$manager`, `position` desimal, retry & delta/heartbeat thumbnail)
+- `electron/validators.cjs` (baru; dipindah dari `src/services/media.js` yang dihapus)
+- `index.html`, `src/main.jsx`, `src/index.css` (hapus Fraunces & Google Fonts, bundel font lokal, CSS waveform)
+- `src/App.jsx`, `src/components/Header.jsx` (gating click-through, `CLOSE_DELAY_MS`, lirik intro/plain, `Header` memo, hapus `backdrop-blur-2xl`, scroll AI, prompt fokus)
+- `src/hooks/useClock.js`, `src/hooks/useWeather.js`, `src/hooks/useMedia.js`, `src/hooks/useAiAgent.js`
+- `src/services/ai.js`, `src/services/calendar.js` (baru), `src/services/lyrics.js`, `src/services/lyricsCache.js` (baru), `src/services/mediaState.js` (baru)
+- `tests/ai.test.js`, `tests/calendar.test.js` (baru), `tests/lyrics.test.js`, `tests/lyricsCache.test.js` (baru), `tests/media.test.js`, `tests/mediaState.test.js` (baru)
+- `package.json`, `package-lock.json`, `README.md`, `docs/CHANGES.md`
 
 ---
 

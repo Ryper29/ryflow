@@ -101,6 +101,7 @@ src/
 │   └── useAiAgent.js
 ├── services/
 │   ├── lyrics.js
+│   ├── lyricsCache.js
 │   ├── weather.js
 │   ├── ai.js
 │   ├── mediaState.js
